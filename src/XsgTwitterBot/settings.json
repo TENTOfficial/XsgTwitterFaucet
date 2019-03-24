@@ -1,0 +1,26 @@
+﻿{
+  "LogServerUrl": "http://logger:5341",
+
+  "NodeOptions": {
+    "AuthUserPassword": "pwd1",
+    "AuthUserName": "demzet",
+    "Url": "http://localhost:8232"
+  },
+
+  "TwitterSettings": {
+    "ConsumerKey": "",
+    "ConsumerSecret": "",
+    "AccessToken": "",
+    "AccessTokenSecret": ""
+  },
+
+  "BotSettings": {
+    "AmountForTweet": 1,
+    "Fee": 0.0001,
+    "TrackKeywords": [ "#xsg", "#snowgem" ],
+    "MessageRewarded": "Your tweet has been rewarded with {0} XSG",
+    "MessageReachedLimit": "You have reached withdrawal limit. Gain additional followers to receive more rewards again!",
+    "MessageFaucetDrained": "Sorry, the fauced has been drained. Please contact core team at https://discordapp.com/channels/398513312696107008/398513312696107010 for intervention."
+  }
+
+}

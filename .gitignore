@@ -1,0 +1,7 @@
+/deployment/bot.env
+/src/.vs/XsgTwitterBot/v15/Server/sqlite3
+/src/XsgTwitterBot.Tests/bin
+/src/XsgTwitterBot.Tests/obj
+/src/XsgTwitterBot/bin
+/src/XsgTwitterBot/obj
+

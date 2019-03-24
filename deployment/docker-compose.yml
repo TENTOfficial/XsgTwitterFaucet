@@ -1,0 +1,55 @@
+version: "3.4"
+services:
+
+  bot:
+    container_name: bot
+    build:
+      context: ../src/XsgTwitterBot
+      dockerfile: Dockerfile
+    links:
+      - "node"
+    depends_on:
+    - "logger"
+    - "node"
+    env_file:
+      - ./bot.env
+    environment:
+    - LogServerUrl=http://logger:5341
+
+  node:
+    container_name: node
+    build:
+      context: ./snowgem
+      dockerfile: Dockerfile
+    expose:
+      - 8232
+    depends_on:
+    - "logger"
+    volumes: 
+    - node-data-dir:/root/.snowgem
+
+  logger:
+    container_name: logger
+    image: datalust/seq
+    expose:
+      - "5341"
+    ports:
+      - 8090:80
+      - 5341:5341
+    environment:
+      - ACCEPT_EULA=Y
+    volumes: 
+    - logger-data:/data
+
+volumes:
+  bot-data:
+    external: false
+  logger-data:
+    external: false
+  node-data-dir:
+    external: false
+
+networks:
+  default:
+    external:
+      name: xsg-network
