@@ -6,6 +6,7 @@ services:
     build:
       context: ../src/XsgTwitterBot
       dockerfile: Dockerfile
+    restart: always 
     links:
       - node
       - logger
@@ -22,6 +23,7 @@ services:
     build:
       context: ./snowgem
       dockerfile: Dockerfile
+    restart: always 
     expose:
       - 8232
     depends_on:
@@ -32,6 +34,7 @@ services:
   logger:
     container_name: logger
     image: datalust/seq
+    restart: always 
     expose:
       - "5341"
     ports:
