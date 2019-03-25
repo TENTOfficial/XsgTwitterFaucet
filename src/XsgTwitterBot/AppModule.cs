@@ -14,6 +14,9 @@ namespace XsgTwitterBot
             builder.RegisterType<WithdrawalService>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<NodeApi>().AsImplementedInterfaces().InstancePerDependency();
 
+            builder.RegisterType<ExplorerApi>().AsImplementedInterfaces().InstancePerDependency();
+            builder.RegisterType<SyncCheckService>().AsImplementedInterfaces().InstancePerDependency();
+
             builder.Register(container => new LiteDatabase(@"rewards.db")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Reward>("rewards")).SingleInstance();
             builder.RegisterType<BotEngine>().SingleInstance();

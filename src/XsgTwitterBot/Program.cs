@@ -4,7 +4,6 @@ using Autofac;
 using XsgTwitterBot.Services.Impl;
 using Microsoft.Extensions.Configuration;
 using Serilog;
-using Tweetinvi.Core.Extensions;
 using Tweetinvi.Streaming;
 using XsgTwitterBot.Configuration;
 
@@ -77,10 +76,3 @@ namespace XsgTwitterBot
         }
     }
 }
-
-
-/*
- * - create ssh deploy script (pubkey needed)
- * - spawn testnet /reg test node
- * http://chainquery.com/bitcoin-api/validateaddress
- */

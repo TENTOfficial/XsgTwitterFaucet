@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using XsgTwitterBot.Configuration;
 using XsgTwitterBot.Node;
 
@@ -14,12 +13,6 @@ namespace XsgTwitterBot.Services.Impl
         {
             _appSettings = appSettings;
             _nodeApi = nodeApi;
-        }
-
-        public async Task<string[]> GetDepositAddressesAsync()
-        {
-            var result = await _nodeApi.ListAddressGroupingsAsync();
-            return result.Result.SelectMany(x => x, (objects, objects1) => objects1[0].ToString()).ToArray();
         }
 
         public async Task<bool> CanExecuteAsync()

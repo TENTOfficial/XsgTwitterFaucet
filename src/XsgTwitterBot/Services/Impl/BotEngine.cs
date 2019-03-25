@@ -1,4 +1,5 @@
-﻿using LiteDB;
+﻿using System.Threading;
+using LiteDB;
 using Serilog;
 using Tweetinvi;
 using Tweetinvi.Core.Extensions;
@@ -15,14 +16,16 @@ namespace XsgTwitterBot.Services.Impl
         private readonly AppSettings _settings;
         private readonly IMessageParser _messageParser;
         private readonly IWithdrawalService _withdrawalService;
+        private readonly ISyncCheckService _syncCheckService;
         private readonly LiteCollection<Reward> _rewardCollection;
-        private ILogger _logger;
+        private readonly ILogger _logger;
 
-        public BotEngine(AppSettings settings, IMessageParser messageParser, IWithdrawalService withdrawalService, LiteCollection<Reward> rewardCollection)
+        public BotEngine(AppSettings settings, IMessageParser messageParser, IWithdrawalService withdrawalService, ISyncCheckService syncCheckService, LiteCollection<Reward> rewardCollection)
         {
             _settings = settings;
             _messageParser = messageParser;
             _withdrawalService = withdrawalService;
+            _syncCheckService = syncCheckService;
             _rewardCollection = rewardCollection;
 
             _logger = Log.ForContext<BotEngine>();
@@ -32,10 +35,9 @@ namespace XsgTwitterBot.Services.Impl
         {
             _logger.Information("Starting BotEngine...");
 
-            _withdrawalService.GetDepositAddressesAsync()
-                .GetAwaiter()
-                .GetResult()
-                .ForEach(address => _logger.Information($"Deposit address: {address}"));
+            Thread.Sleep(30 * 1000);
+
+            _syncCheckService.WaitUntilSyncedAsync().GetAwaiter().GetResult();
 
             var stream = Stream.CreateFilteredStream(Auth.SetUserCredentials(
                 _settings.TwitterSettings.ConsumerKey,

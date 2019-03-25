@@ -43,8 +43,7 @@ namespace XsgTwitterBot.Node.Impl
             }
 
             var log = JsonConvert.SerializeObject(json);
-            Console.WriteLine(log);
-
+            
             using (var dataStream = request.GetRequestStream())
             {
                 byte[] byteArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(json));
@@ -70,14 +69,6 @@ namespace XsgTwitterBot.Node.Impl
             var result = await ExecuteJsonRpcCommandAsync("getinfo", new Dictionary<string, object>());
             return JsonConvert.DeserializeObject<JsonRpcResponse<GetInfoResponse>>(result);
         }
-
-        public async Task<JsonRpcResponseArray<object[][]>> ListAddressGroupingsAsync()
-        {
-            var result = await ExecuteJsonRpcCommandAsync("listaddressgroupings", new Dictionary<string, object>());
-            return JsonConvert.DeserializeObject<JsonRpcResponseArray<object[][]>>(result);
-        }
-        
-
 
         public async Task<string> SendToAddressAsync(string address, decimal amount)
         {
