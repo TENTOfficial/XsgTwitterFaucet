@@ -81,7 +81,7 @@ namespace XsgTwitterBot.Services.Impl
         {
             if (e.Exception != null)
             {
-                _logger.Error("Failed to process tweet", e.Exception);
+                _logger.Error(e.Exception, "Failed to process tweet");
             }
         }
 
