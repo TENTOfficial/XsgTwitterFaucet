@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using LiteDB;
 using Serilog;
 using Tweetinvi;
@@ -102,6 +103,7 @@ namespace XsgTwitterBot.Services.Impl
             {
                 Id = e.Tweet.CreatedBy.Id,
                 Followers = e.Tweet.CreatedBy.FollowersCount,
+                LastRewardDate = DateTime.UtcNow,
                 Withdrawals = 1
             };
 
@@ -126,10 +128,17 @@ namespace XsgTwitterBot.Services.Impl
             {
                 replyMessage = string.Format(_settings.BotSettings.MessageReachedLimit, e.Tweet.CreatedBy.ScreenName);
             }
+            else if (reward.LastRewardDate.Date.Equals(DateTime.UtcNow.Date))
+            {
+                replyMessage = string.Format(_settings.BotSettings.MessageDailyLimitReached, e.Tweet.CreatedBy.ScreenName);
+            }
             else
             {
-                _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
                 replyMessage = string.Format(_settings.BotSettings.MessageRewarded, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.AmountForTweet);
+
+                _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
+
+                reward.LastRewardDate = DateTime.UtcNow;
                 reward.Withdrawals++;
             }
 
