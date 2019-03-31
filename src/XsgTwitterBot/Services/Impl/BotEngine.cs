@@ -74,6 +74,8 @@ namespace XsgTwitterBot.Services.Impl
                 {
                     InReplyToTweet = e.Tweet
                 });
+
+                _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
             }
         }
 
@@ -91,7 +93,7 @@ namespace XsgTwitterBot.Services.Impl
             if (!canWithdraw)
             {
                 _logger.Warning("Not enough funds for withdrawal.");
-                return string.Format(_settings.BotSettings.MessageFaucetDrained);
+                return string.Format(_settings.BotSettings.MessageFaucetDrained, e.Tweet.CreatedBy.ScreenName);
             }
 
             _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
@@ -105,7 +107,7 @@ namespace XsgTwitterBot.Services.Impl
 
             _rewardCollection.Insert(reward);
 
-            return string.Format(_settings.BotSettings.MessageRewarded, _settings.BotSettings.AmountForTweet);
+            return string.Format(_settings.BotSettings.MessageRewarded, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.AmountForTweet);
         }
 
         private string HandleExistingUser(MatchedTweetReceivedEventArgs e, string targetAddress, Reward reward)
@@ -114,7 +116,7 @@ namespace XsgTwitterBot.Services.Impl
             if (!canWithdraw)
             {
                 _logger.Warning("Not enough funds for withdrawal.");
-                return string.Format(_settings.BotSettings.MessageFaucetDrained);
+                return string.Format(_settings.BotSettings.MessageFaucetDrained, e.Tweet.CreatedBy.ScreenName);
             }
 
             string replyMessage;
@@ -122,12 +124,12 @@ namespace XsgTwitterBot.Services.Impl
 
             if (reward.Withdrawals >= reward.Followers)
             {
-                replyMessage = _settings.BotSettings.MessageReachedLimit;
+                replyMessage = string.Format(_settings.BotSettings.MessageReachedLimit, e.Tweet.CreatedBy.ScreenName);
             }
             else
             {
                 _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
-                replyMessage = string.Format(_settings.BotSettings.MessageRewarded, _settings.BotSettings.AmountForTweet);
+                replyMessage = string.Format(_settings.BotSettings.MessageRewarded, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.AmountForTweet);
                 reward.Withdrawals++;
             }
 

@@ -27,6 +27,12 @@ namespace XsgTwitterBot.Services.Impl
             return false;
         }
 
+        public async Task<decimal> GetBalanceAsync()
+        {
+            var response = await _nodeApi.GetInfoAsync();
+            return response.Result.Balance;
+        }
+
         public async Task ExecuteAsync(string targetAddress)
         {
             await _nodeApi.SendToAddressAsync(targetAddress, _appSettings.BotSettings.AmountForTweet);

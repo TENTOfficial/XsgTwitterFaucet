@@ -15,12 +15,12 @@
   },
 
   "BotSettings": {
-    "AmountForTweet": 1,
+    "AmountForTweet": 0.5,
     "Fee": 0.0001,
     "TrackKeywords": [ "#xsg", "#snowgem" ],
-    "MessageRewarded": "Your tweet has been rewarded with {0} XSG",
-    "MessageReachedLimit": "You have reached withdrawal limit. Gain additional followers to receive more rewards again!",
-    "MessageFaucetDrained": "Sorry, the fauced has been drained. Please contact core team at https://discordapp.com/channels/398513312696107008/398513312696107010 for intervention."
+    "MessageRewarded": "@{0} your tweet has been rewarded with {1} XSG",
+    "MessageReachedLimit": "@{0} you have reached withdrawal limit. Gain additional followers to receive more rewards again!",
+    "MessageFaucetDrained": "@{0} sorry, the faucet has been drained. Please contact core team at https://discordapp.com/channels/398513312696107008/398513312696107010 for intervention."
   }
 
 }

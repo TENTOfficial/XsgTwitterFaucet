@@ -6,5 +6,6 @@ namespace XsgTwitterBot.Services
     {
         Task<bool> CanExecuteAsync();
         Task ExecuteAsync(string targetAddress);
+        Task<decimal> GetBalanceAsync();
     }
 }
