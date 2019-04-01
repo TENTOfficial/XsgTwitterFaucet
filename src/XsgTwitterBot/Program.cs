@@ -14,10 +14,12 @@ namespace XsgTwitterBot
         private static readonly AutoResetEvent WaitHandle = new AutoResetEvent(false);
         private static readonly AppSettings AppSettings = new AppSettings();
         private static IContainer _container;
-        private static IFilteredStream _stream;
+        private static BotEngine _botEngine;
 
         private static void Main(string[] args)
         {
+            Thread.Sleep(30 * 1000);
+
             try
             {
                 SetupConfiguration();
@@ -63,12 +65,14 @@ namespace XsgTwitterBot
 
         public static void RunBotEngine()
         {
-            _stream = _container.Resolve<BotEngine>().Start();
+            _botEngine = _container.Resolve<BotEngine>();
+            _botEngine.Start();
 
             Console.CancelKeyPress += (o, e) =>
             {
-                _stream.StopStream();
+                _botEngine.Dispose();
                 _container.Dispose();
+
                 WaitHandle.Set();
             };
 

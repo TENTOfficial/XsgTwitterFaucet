@@ -28,15 +28,7 @@ namespace XsgTwitterBot.Tests
 
             Assert.NotNull(result);
         }
-
-        [Fact]
-        public async Task ListAddressGroupingsAsync_Should_ReturnData()
-        {
-            var result = await _nodeApi.ListAddressGroupingsAsync();
-
-            Assert.NotNull(result);
-        }
-
+ 
         [Fact]
         public async Task SendToAddress_Should_Success()
         {
