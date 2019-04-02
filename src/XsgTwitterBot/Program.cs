@@ -6,6 +6,7 @@ using XsgTwitterBot.Services.Impl;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using XsgTwitterBot.Configuration;
+using XsgTwitterBot.Node;
 using Timer = System.Timers.Timer;
 
 namespace XsgTwitterBot
@@ -32,11 +33,11 @@ namespace XsgTwitterBot
                 SetupConfiguration();
                 SetupLogger();
                 SetupContainer();
+                WaitForNodeConnectivity();
                 RunBotEngine();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
                 Log.Error(ex, "Application has crashed!");
             }
         }
@@ -53,7 +54,6 @@ namespace XsgTwitterBot
 
         private static void SetupLogger()
         {
-            Console.WriteLine(AppSettings.LogServerUrl);
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.Console()
@@ -70,11 +70,28 @@ namespace XsgTwitterBot
             _container = containerBuilder.Build();
         }
 
+        public static void WaitForNodeConnectivity()
+        {
+            var nodeApi = _container.Resolve<INodeApi>();
+            var isNodeOperational = false;
+
+            while (!isNodeOperational)
+            {
+                try
+                {
+                    nodeApi.GetInfoAsync().GetAwaiter().GetResult();
+                    isNodeOperational = true;
+                }
+                catch
+                {
+                    Log.Logger.Information("Waiting for node connectivity...");
+                    Task.Delay(1000 * 10).GetAwaiter().GetResult();
+                }
+            }
+        }
+
         public static void RunBotEngine()
         {
-            // waiting for xsg node
-            Task.Delay(1000 * 30).GetAwaiter().GetResult();
-
             _botEngine = _container.Resolve<BotEngine>();
             _botEngine.Start();
 
