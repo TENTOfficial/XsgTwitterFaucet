@@ -4,8 +4,8 @@ using Autofac;
 using XsgTwitterBot.Services.Impl;
 using Microsoft.Extensions.Configuration;
 using Serilog;
-using Tweetinvi.Streaming;
 using XsgTwitterBot.Configuration;
+using Timer = System.Timers.Timer;
 
 namespace XsgTwitterBot
 {
@@ -13,9 +13,16 @@ namespace XsgTwitterBot
     {
         private static readonly AutoResetEvent WaitHandle = new AutoResetEvent(false);
         private static readonly AppSettings AppSettings = new AppSettings();
+
+        private static readonly Timer RestartTimer = new Timer
+        {
+            Enabled = true,
+            AutoReset = true,
+            Interval = 1000 * 60 * 60 // 1 hour
+        };
+
         private static IContainer _container;
         private static BotEngine _botEngine;
-        private static Timer _restartTimer;
 
         private static void Main(string[] args)
         {
@@ -65,16 +72,23 @@ namespace XsgTwitterBot
         public static void RunBotEngine()
         {
             _botEngine = _container.Resolve<BotEngine>();
+            _botEngine.Start();
 
-            _restartTimer = new Timer(o => { _botEngine.Start(); }, null,
-                TimeSpan.FromSeconds(30),
-                TimeSpan.FromHours(4));
-            
+            RestartTimer.Elapsed += (sender, args) =>
+            {
+                Log.Logger.Information($"Restarting the {nameof(BotEngine)}.");
+
+                _botEngine.Start();
+            };
+
+            RestartTimer.Start();
+
             Console.CancelKeyPress += (o, e) =>
             {
-                _restartTimer.Change(0, 0);
-                _restartTimer.Dispose();
-                _restartTimer = null;
+                RestartTimer.Enabled = false;
+                RestartTimer.Stop();
+                RestartTimer.Dispose();
+
                 _botEngine.Dispose();
                 _container.Dispose();
 

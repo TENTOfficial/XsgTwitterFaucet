@@ -93,8 +93,6 @@ namespace XsgTwitterBot.Services.Impl
             if (e.Exception == null) return;
 
             _logger.Error(e.Exception, "Failed to process tweet {@StreamExceptionEventArgs}", e);
-
-            Start();
         }
 
         private string HandleNewUser(MatchedTweetReceivedEventArgs e, string targetAddress)
