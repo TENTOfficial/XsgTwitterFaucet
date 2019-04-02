@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Autofac;
 using XsgTwitterBot.Services.Impl;
 using Microsoft.Extensions.Configuration;
@@ -71,6 +72,9 @@ namespace XsgTwitterBot
 
         public static void RunBotEngine()
         {
+            // waiting for xsg node
+            Task.Delay(1000 * 30).GetAwaiter().GetResult();
+
             _botEngine = _container.Resolve<BotEngine>();
             _botEngine.Start();
 
