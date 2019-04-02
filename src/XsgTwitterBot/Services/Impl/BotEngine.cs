@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using LiteDB;
 using Serilog;
 using Tweetinvi;
@@ -65,7 +66,7 @@ namespace XsgTwitterBot.Services.Impl
             {
                 if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
                 {
-                    var text = e.Tweet.FullText;
+                    var text = Regex.Replace(e.Tweet.FullText, @"\r\n?|\n", " ");
                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                     if (string.IsNullOrWhiteSpace(targetAddress))
                         return;
