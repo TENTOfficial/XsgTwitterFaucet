@@ -4,6 +4,7 @@ using Serilog;
 using Tweetinvi;
 using Tweetinvi.Core.Extensions;
 using Tweetinvi.Events;
+using Tweetinvi.Models;
 using Tweetinvi.Parameters;
 using Tweetinvi.Streaming;
 using XsgTwitterBot.Configuration;
@@ -21,6 +22,8 @@ namespace XsgTwitterBot.Services.Impl
         private readonly LiteCollection<Reward> _rewardCollection;
         private readonly ILogger _logger;
 
+        static readonly object ProcessingLock = new object();
+
         public BotEngine(AppSettings settings, IMessageParser messageParser, IWithdrawalService withdrawalService, ISyncCheckService syncCheckService, LiteCollection<Reward> rewardCollection)
         {
             _settings = settings;
@@ -34,46 +37,53 @@ namespace XsgTwitterBot.Services.Impl
 
         public void Start()
         {
-            _logger.Information("Starting BotEngine...");
- 
-            _syncCheckService.WaitUntilSyncedAsync().GetAwaiter().GetResult();
+            lock (ProcessingLock)
+            {
+                _logger.Information("Starting BotEngine...");
 
-            _stream = Stream.CreateFilteredStream(Auth.SetUserCredentials(
-                _settings.TwitterSettings.ConsumerKey,
-                _settings.TwitterSettings.ConsumerSecret,
-                _settings.TwitterSettings.AccessToken,
-                _settings.TwitterSettings.AccessTokenSecret));
+                _syncCheckService.WaitUntilSyncedAsync().GetAwaiter().GetResult();
+                
+                _stream = Stream.CreateFilteredStream(Auth.SetUserCredentials(
+                    _settings.TwitterSettings.ConsumerKey,
+                    _settings.TwitterSettings.ConsumerSecret,
+                    _settings.TwitterSettings.AccessToken,
+                    _settings.TwitterSettings.AccessTokenSecret));
 
-            _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
+                _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
 
-            _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
-            _stream.StreamStopped += OnStreamStreamStopped;
-            _stream.StartStreamMatchingAnyConditionAsync();
+                _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
+                _stream.StreamStopped += OnStreamStreamStopped;
+                _stream.StartStreamMatchingAnyConditionAsync();
 
-            _logger.Information("BotEngine has been started.");
+                _logger.Information("BotEngine has been started.");
+            }
         }
 
         private void OnStreamOnMatchingTweetReceived(object sender, MatchedTweetReceivedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
+            lock (ProcessingLock)
             {
-                var targetAddress = _messageParser.GetValidAddressAsync(e.Tweet.Text).GetAwaiter().GetResult();
-                if (string.IsNullOrWhiteSpace(targetAddress))
-                    return;
-
-                _logger.Information("Received tweet '{Text}' from {Name} ", e.Tweet.Text, e.Tweet.CreatedBy.Name);
-
-                var reward = _rewardCollection.FindOne(x => x.Id == e.Tweet.CreatedBy.Id);
-                var replyMessage = reward != null ? HandleExistingUser(e, targetAddress, reward) : HandleNewUser(e, targetAddress);
-
-                _logger.Information("Replied with message '{ReplyMessage}'", replyMessage);
-
-                Tweet.PublishTweet(replyMessage, new PublishTweetOptionalParameters
+                if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
                 {
-                    InReplyToTweet = e.Tweet
-                });
+                    var text = e.Tweet.FullText;
+                    var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
+                    if (string.IsNullOrWhiteSpace(targetAddress))
+                        return;
 
-                _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
+                    _logger.Information("Received tweet '{Text}' from {Name} ", text, e.Tweet.CreatedBy.Name);
+
+                    var reward = _rewardCollection.FindOne(x => x.Id == e.Tweet.CreatedBy.Id);
+                    var replyMessage = reward != null ? HandleExistingUser(e, targetAddress, reward) : HandleNewUser(e, targetAddress);
+
+                    _logger.Information("Replied with message '{ReplyMessage}'", replyMessage);
+
+                    Tweet.PublishTweet(replyMessage, new PublishTweetOptionalParameters
+                    {
+                        InReplyToTweet = e.Tweet
+                    });
+
+                    _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
+                }
             }
         }
 
@@ -82,7 +92,7 @@ namespace XsgTwitterBot.Services.Impl
             if (e.Exception == null) return;
 
             _logger.Error(e.Exception, "Failed to process tweet {@StreamExceptionEventArgs}", e);
-                
+
             Start();
         }
 

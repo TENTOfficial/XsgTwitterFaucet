@@ -15,6 +15,7 @@ namespace XsgTwitterBot
         private static readonly AppSettings AppSettings = new AppSettings();
         private static IContainer _container;
         private static BotEngine _botEngine;
+        private static Timer _restartTimer;
 
         private static void Main(string[] args)
         {
@@ -66,10 +67,16 @@ namespace XsgTwitterBot
         public static void RunBotEngine()
         {
             _botEngine = _container.Resolve<BotEngine>();
-            _botEngine.Start();
 
+            _restartTimer = new Timer(o => { _botEngine.Start(); }, null,
+                TimeSpan.FromSeconds(1),
+                TimeSpan.FromHours(4));
+            
             Console.CancelKeyPress += (o, e) =>
             {
+                _restartTimer.Change(0, 0);
+                _restartTimer.Dispose();
+                _restartTimer = null;
                 _botEngine.Dispose();
                 _container.Dispose();
 
