@@ -19,8 +19,6 @@ namespace XsgTwitterBot
 
         private static void Main(string[] args)
         {
-            Thread.Sleep(30 * 1000);
-
             try
             {
                 SetupConfiguration();
@@ -69,7 +67,7 @@ namespace XsgTwitterBot
             _botEngine = _container.Resolve<BotEngine>();
 
             _restartTimer = new Timer(o => { _botEngine.Start(); }, null,
-                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(30),
                 TimeSpan.FromHours(4));
             
             Console.CancelKeyPress += (o, e) =>
