@@ -5,3 +5,6 @@
 /src/XsgTwitterBot/bin
 /src/XsgTwitterBot/obj
 /.vscode
+/src/.idea/.idea.XsgTwitterBot/.idea
+/src/.idea/.idea.XsgTwitterBot
+/src/*.user
