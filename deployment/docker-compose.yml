@@ -18,7 +18,7 @@ services:
     environment:
     - LogServerUrl=http://logger:5341
     volumes: 
-    - bot-data:/app/data
+    - bot-data/rewards.db:/app/rewards.db
 
   node:
     container_name: node
