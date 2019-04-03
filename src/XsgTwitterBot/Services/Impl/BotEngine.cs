@@ -34,6 +34,8 @@ namespace XsgTwitterBot.Services.Impl
             _rewardCollection = rewardCollection;
 
             _logger = Log.ForContext<BotEngine>();
+
+            RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackAndAwait;
         }
 
         public void Start()
@@ -60,10 +62,25 @@ namespace XsgTwitterBot.Services.Impl
             }
         }
 
+        public void Restart()
+        {
+            lock (ProcessingLock)
+            {
+                _logger.Information("Restarting BotEngine...");
+
+                _stream.StopStream();
+                _stream.StartStreamMatchingAnyConditionAsync();
+
+                _logger.Information("BotEngine has been restarted.");
+            }
+        }
+
         private void OnStreamOnMatchingTweetReceived(object sender, MatchedTweetReceivedEventArgs e)
         {
             lock (ProcessingLock)
             {
+                _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
+
                 if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
                 {
                     var text = Regex.Replace(e.Tweet.FullText, @"\r\n?|\n", " ");
@@ -93,6 +110,8 @@ namespace XsgTwitterBot.Services.Impl
             if (e.Exception == null) return;
 
             _logger.Error(e.Exception, "Failed to process tweet {@StreamExceptionEventArgs}", e);
+
+            Restart();
         }
 
         private string HandleNewUser(MatchedTweetReceivedEventArgs e, string targetAddress)

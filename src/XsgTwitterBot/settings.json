@@ -8,15 +8,14 @@
   },
 
   "TwitterSettings": {
-    "ConsumerKey": "",
-    "ConsumerSecret": "",
-    "AccessToken": "",
-    "AccessTokenSecret": ""
+    "ConsumerKey": "cM3Yp838OhlLcUyypywvSdPDf",
+    "ConsumerSecret": "i7eGOy7cgkURSEBIwUNQmPNL9E6lcexUESzLLe8cE9fGAQyZzR",
+    "AccessToken": "2858559033-fl2en3Zvdntmyfj9C6Klzp6JM5Hl7WYqWIQcpJl",
+    "AccessTokenSecret": "ZsQejoY7Ey131hw6yz3rp878eNgOs4WQsfZ97X48gPpXf"
   },
 
   "BotSettings": {
     "AmountForTweet": 0.5,
-    "Fee": 0.0001,
     "TrackKeywords": [ "#xsg", "#snowgem" ],
     "MessageRewarded": "@{0} Your tweet has been rewarded with {1} XSG.",
     "MessageDailyLimitReached": "@{0} You have reached the daily reward limit.",

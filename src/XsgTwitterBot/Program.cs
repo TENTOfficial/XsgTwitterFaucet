@@ -97,9 +97,7 @@ namespace XsgTwitterBot
 
             RestartTimer.Elapsed += (sender, args) =>
             {
-                Log.Logger.Information($"Restarting the {nameof(BotEngine)}.");
-
-                _botEngine.Start();
+                _botEngine.Restart();
             };
 
             RestartTimer.Start();
