@@ -17,6 +17,8 @@ services:
       - ./bot.env
     environment:
     - LogServerUrl=http://logger:5341
+    volumes: 
+    - bot-data:/
 
   node:
     container_name: node
