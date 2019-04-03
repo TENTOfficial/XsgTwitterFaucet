@@ -1,4 +1,5 @@
-﻿using Autofac;
+﻿using System.IO;
+using Autofac;
 using LiteDB;
 using XsgTwitterBot.Models;
 using XsgTwitterBot.Node.Impl;
@@ -17,7 +18,8 @@ namespace XsgTwitterBot
             builder.RegisterType<ExplorerApi>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<SyncCheckService>().AsImplementedInterfaces().InstancePerDependency();
 
-            builder.Register(container => new LiteDatabase(@"rewards.db")).SingleInstance();
+            var dbPath = Path.Combine("db", Path.PathSeparator.ToString(), "rewards.db");
+            builder.Register(container => new LiteDatabase(dbPath)).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Reward>("rewards")).SingleInstance();
             builder.RegisterType<BotEngine>().SingleInstance();
         }

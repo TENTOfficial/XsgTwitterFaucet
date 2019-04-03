@@ -12,4 +12,5 @@ RUN dotnet publish -c Release -o out
 FROM microsoft/dotnet:2.1-runtime-bionic
 WORKDIR /app
 COPY --from=build-env /app/out .
+RUN mkdir db
 ENTRYPOINT ["dotnet", "XsgTwitterBot.dll"]
