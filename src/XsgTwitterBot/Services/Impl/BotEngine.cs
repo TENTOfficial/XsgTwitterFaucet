@@ -79,14 +79,14 @@ namespace XsgTwitterBot.Services.Impl
         {
             lock (ProcessingLock)
             {
-                _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
-
                 if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
                 {
                     var text = Regex.Replace(e.Tweet.FullText, @"\r\n?|\n", " ");
                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                     if (string.IsNullOrWhiteSpace(targetAddress))
                         return;
+
+                    _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
 
                     _logger.Information("Received tweet '{Text}' from {Name} ", text, e.Tweet.CreatedBy.Name);
 
