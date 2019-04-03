@@ -18,7 +18,7 @@ services:
     environment:
     - LogServerUrl=http://logger:5341
     volumes: 
-    - bot-data:/app/db
+    - bot-data-dir:/app/db
 
   node:
     container_name: node
@@ -48,7 +48,7 @@ services:
     - logger-data:/data
 
 volumes:
-  bot-data:
+  bot-data-dir:
     external: false
   logger-data:
     external: false
