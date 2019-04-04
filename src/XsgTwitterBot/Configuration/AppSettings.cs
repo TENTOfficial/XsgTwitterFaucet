@@ -9,5 +9,7 @@
         public TwitterSettings TwitterSettings { get; set; }
 
         public BotSettings BotSettings { get; set; }
+        
+        public StatSettings StatSettings { get; set; }
     }
 }

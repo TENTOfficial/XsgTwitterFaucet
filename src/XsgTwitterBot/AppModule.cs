@@ -13,14 +13,16 @@ namespace XsgTwitterBot
         {
             builder.RegisterType<MessageParser>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<WithdrawalService>().AsImplementedInterfaces().InstancePerDependency();
+            builder.RegisterType<StatsService>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<NodeApi>().AsImplementedInterfaces().InstancePerDependency();
 
             builder.RegisterType<ExplorerApi>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<SyncCheckService>().AsImplementedInterfaces().InstancePerDependency();
             
-            var dbPath = Path.Combine("db", "rewards.db");
+            var dbPath = Path.Combine("db", "data.db");
             builder.Register(container => new LiteDatabase(dbPath)).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Reward>("rewards")).SingleInstance();
+            builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Stat>("stats")).SingleInstance();
             builder.RegisterType<BotEngine>().SingleInstance();
         }
     }

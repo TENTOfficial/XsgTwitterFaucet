@@ -19,18 +19,25 @@ namespace XsgTwitterBot.Services.Impl
         private readonly IMessageParser _messageParser;
         private readonly IWithdrawalService _withdrawalService;
         private readonly ISyncCheckService _syncCheckService;
+        private readonly IStatService _statService;
         private IFilteredStream _stream;
         private readonly LiteCollection<Reward> _rewardCollection;
         private readonly ILogger _logger;
 
         static readonly object ProcessingLock = new object();
 
-        public BotEngine(AppSettings settings, IMessageParser messageParser, IWithdrawalService withdrawalService, ISyncCheckService syncCheckService, LiteCollection<Reward> rewardCollection)
+        public BotEngine(AppSettings settings, 
+            IMessageParser messageParser, 
+            IWithdrawalService withdrawalService,
+            ISyncCheckService syncCheckService, 
+            IStatService statService,
+            LiteCollection<Reward> rewardCollection)
         {
             _settings = settings;
             _messageParser = messageParser;
             _withdrawalService = withdrawalService;
             _syncCheckService = syncCheckService;
+            _statService = statService;
             _rewardCollection = rewardCollection;
 
             _logger = Log.ForContext<BotEngine>();
@@ -124,6 +131,7 @@ namespace XsgTwitterBot.Services.Impl
             }
 
             _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
+            _statService.AddStat(DateTime.UtcNow, _settings.BotSettings.AmountForTweet, true);
 
             var reward = new Reward
             {
@@ -163,6 +171,7 @@ namespace XsgTwitterBot.Services.Impl
                 replyMessage = string.Format(_settings.BotSettings.MessageRewarded, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.AmountForTweet);
 
                 _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
+                _statService.AddStat(DateTime.UtcNow, _settings.BotSettings.AmountForTweet, false);
 
                 reward.LastRewardDate = DateTime.UtcNow;
                 reward.Withdrawals++;

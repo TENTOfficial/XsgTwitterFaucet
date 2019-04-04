@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Serilog;
 using XsgTwitterBot.Configuration;
 using XsgTwitterBot.Node;
+using XsgTwitterBot.Services;
 using Timer = System.Timers.Timer;
 
 namespace XsgTwitterBot
@@ -25,6 +26,7 @@ namespace XsgTwitterBot
 
         private static IContainer _container;
         private static BotEngine _botEngine;
+        private static IStatService _statService;
 
         private static void Main(string[] args)
         {
@@ -70,7 +72,7 @@ namespace XsgTwitterBot
             _container = containerBuilder.Build();
         }
 
-        public static void WaitForNodeConnectivity()
+        private static void WaitForNodeConnectivity()
         {
             var nodeApi = _container.Resolve<INodeApi>();
             var isNodeOperational = false;
@@ -90,7 +92,7 @@ namespace XsgTwitterBot
             }
         }
 
-        public static void RunBotEngine()
+        private static void RunBotEngine()
         {
             _botEngine = _container.Resolve<BotEngine>();
             _botEngine.Start();
@@ -102,6 +104,10 @@ namespace XsgTwitterBot
 
             RestartTimer.Start();
 
+            var cancellationTokenSource = new CancellationTokenSource();
+            _statService = _container.Resolve<StatsService>();
+            _statService.RunPublisher(cancellationTokenSource.Token);
+            
             Console.CancelKeyPress += (o, e) =>
             {
                 RestartTimer.Enabled = false;
@@ -110,6 +116,8 @@ namespace XsgTwitterBot
 
                 _botEngine.Dispose();
                 _container.Dispose();
+                
+                cancellationTokenSource.Cancel();
 
                 WaitHandle.Set();
             };

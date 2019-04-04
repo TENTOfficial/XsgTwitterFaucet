@@ -15,12 +15,18 @@
   },
 
   "BotSettings": {
-    "AmountForTweet": 0.5,
+    "AmountForTweet": 2,
     "TrackKeywords": [ "#xsg", "#snowgem" ],
     "MessageRewarded": "@{0} Your tweet has been rewarded with {1} XSG.",
     "MessageDailyLimitReached": "@{0} You have reached the daily reward limit.",
     "MessageReachedLimit": "@{0} You have reached withdrawal limit. Gain additional followers to receive more rewards again!",
     "MessageFaucetDrained": "@{0} Sorry, the faucet has been drained. Please contact core team at https://discordapp.com/channels/398513312696107008/398513312696107010 for intervention."
+  },
+  
+  "StatSettings" : {
+    "DailyMessage"   : "Daily '{0}' stats \n new users: {1} \n total amount withdrawn: {2} XSG \n  total tweets sent: {3}",
+    "MonthlyMessage" : "Monthly '{0}' stats \n new users: {1} \n total amount withdrawn: {2} XSG \n  total tweets sent: {3}",
+    "YearlyMessage"  : "Yearly '{0}' stats \n new users: {1} \n total amount withdrawn: {2} XSG \n  total tweets sent: {3}"
   }
 
 }
