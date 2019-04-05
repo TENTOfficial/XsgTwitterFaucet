@@ -26,7 +26,7 @@ namespace XsgTwitterBot.Services.Impl
         {
             var task = new Task(async () =>
             {
-                while (cancellationToken.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     var nextDay = DateTime.UtcNow.Date.AddDays(1);
                     var endOfDay = nextDay.AddSeconds(-1);
