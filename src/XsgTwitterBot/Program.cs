@@ -106,7 +106,7 @@ namespace XsgTwitterBot
 
             var cancellationTokenSource = new CancellationTokenSource();
             _statService = _container.Resolve<IStatService>();
-            _statService.RunPublisher(cancellationTokenSource.Token);
+            // _statService.RunPublisher(cancellationTokenSource.Token);
             
             Console.CancelKeyPress += (o, e) =>
             {
