@@ -35,7 +35,11 @@ namespace XsgTwitterBot.Services.Impl
                     
                     _logger.Information("Waiting {@Diff} for stat publishing", diff);
                     
-                    await Task.Delay(diff, cancellationToken);
+                    await Task.Delay((int)diff.TotalMilliseconds/4, cancellationToken);
+                    await Task.Delay((int)diff.TotalMilliseconds/4, cancellationToken);
+                    await Task.Delay((int)diff.TotalMilliseconds/4, cancellationToken);
+                    await Task.Delay((int)diff.TotalMilliseconds/4, cancellationToken);
+                    
                 
                     var dailyStatId = long.Parse($"{endOfDay.Year}{endOfDay.Month}{endOfDay.Day}");
                     var monthlyStatId = long.Parse($"{endOfDay.Year}{endOfDay.Month}{endOfDay.Day}");
