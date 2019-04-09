@@ -228,17 +228,17 @@ namespace XsgTwitterBot.Services.Impl
             var hours = (int) diff.TotalHours;
             var minutes = (int) diff.TotalMinutes - hours * 60;
 
-            var tryAgainIn = "Try again in ";
+            var tryAgainIn = "Try again in";
             if (hours == 0)
             {
-                tryAgainIn += $"{minutes} minute" + (minutes > 1 ? "s" : "");
+                tryAgainIn += $" {minutes} minute" + (minutes > 1 ? "s" : "");
             }
             else
             {
-                tryAgainIn += $"{hours} hour" + (hours > 1 ? "s" : "");
+                tryAgainIn += $" {hours} hour" + (hours > 1 ? "s" : "");
                 if (minutes > 0)
                 {
-                    tryAgainIn += $"{minutes} minute" + (minutes > 1 ? "s" : "");
+                    tryAgainIn += $" {minutes} minute" + (minutes > 1 ? "s" : "");
                 }
             }
 
