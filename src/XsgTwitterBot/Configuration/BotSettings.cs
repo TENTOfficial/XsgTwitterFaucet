@@ -10,5 +10,7 @@ namespace XsgTwitterBot.Configuration
         public string MessageFaucetDrained { get; set; }
         public string MessageDailyLimitReached { get; set; }
         public decimal AmountForTweet { get; set; }
+        public string MessageTweetInvalid { get; set; }
+        public int MinTweetLenght { get; set; }
     }
 }

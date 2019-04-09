@@ -94,9 +94,26 @@ namespace XsgTwitterBot.Services.Impl
                         return;
 
                     _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
-
                     _logger.Information("Received tweet '{Text}' from {Name} ", text, e.Tweet.CreatedBy.Name);
 
+                    var isUserLegit = ValidateUser(e.Tweet.CreatedBy);
+                    if (!isUserLegit)
+                    {
+                        _logger.Information("Ignoring tweet from user {@User}", e.Tweet.CreatedBy);
+                        return;
+                    }
+
+                    var isTweetTextValid = ValidateTweetText(e.Tweet.Text);
+                    if (!isTweetTextValid)
+                    {
+                        Tweet.PublishTweet(string.Format(_settings.BotSettings.MessageTweetInvalid, _settings.BotSettings.MinTweetLenght) , new PublishTweetOptionalParameters
+                        {
+                            InReplyToTweet = e.Tweet
+                        });
+                        
+                        return;
+                    }
+                    
                     var reward = _rewardCollection.FindOne(x => x.Id == e.Tweet.CreatedBy.Id);
                     var replyMessage = reward != null ? HandleExistingUser(e, targetAddress, reward) : HandleNewUser(e, targetAddress);
 
@@ -119,6 +136,28 @@ namespace XsgTwitterBot.Services.Impl
             _logger.Error(e.Exception, "Failed to process tweet {@StreamExceptionEventArgs}", e);
 
             Restart();
+        }
+
+        private bool ValidateUser(IUser user)
+        {
+            if (user.FriendsCount >= user.FollowersCount && user.FriendsCount > 10)
+            {
+                return true;
+            }
+
+            var ratio = user.FollowersCount / user.FriendsCount;
+            if (ratio < 0.81m)
+            {
+                if (user.FollowersCount > 100)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool ValidateTweetText(string text)
+        {
+            return text.Length >= _settings.BotSettings.MinTweetLenght;
         }
 
         private string HandleNewUser(MatchedTweetReceivedEventArgs e, string targetAddress)
