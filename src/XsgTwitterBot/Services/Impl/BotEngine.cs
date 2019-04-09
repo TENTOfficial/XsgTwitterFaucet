@@ -93,7 +93,7 @@ namespace XsgTwitterBot.Services.Impl
                     if (string.IsNullOrWhiteSpace(targetAddress))
                         return;
 
-                    _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
+                    // _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
                     _logger.Information("Received tweet '{Text}' from {Name} ", text, e.Tweet.CreatedBy.Name);
 
                     var isUserLegit = ValidateUser(e.Tweet.CreatedBy);
@@ -106,6 +106,7 @@ namespace XsgTwitterBot.Services.Impl
                     var isTweetTextValid = ValidateTweetText(e.Tweet.Text);
                     if (!isTweetTextValid)
                     {
+                        _logger.Information("Tweet is invalid");
                         Tweet.PublishTweet(string.Format(_settings.BotSettings.MessageTweetInvalid, _settings.BotSettings.MinTweetLenght) , new PublishTweetOptionalParameters
                         {
                             InReplyToTweet = e.Tweet
@@ -203,7 +204,7 @@ namespace XsgTwitterBot.Services.Impl
             }
             else if (reward.LastRewardDate.Date.Equals(DateTime.UtcNow.Date))
             {
-                replyMessage = string.Format(_settings.BotSettings.MessageDailyLimitReached, e.Tweet.CreatedBy.ScreenName);
+                replyMessage = GenerateMessageDailyLimitReached(e.Tweet.CreatedBy.ScreenName);
             }
             else
             {
@@ -219,6 +220,29 @@ namespace XsgTwitterBot.Services.Impl
             _rewardCollection.Update(reward);
 
             return replyMessage;
+        }
+
+        private string GenerateMessageDailyLimitReached(string screenName)
+        {
+            var diff = DateTime.UtcNow.Date.AddDays(1) -DateTime.UtcNow;
+            var hours = (int) diff.TotalHours;
+            var minutes = (int) diff.TotalMinutes - hours * 60;
+
+            var tryAgainIn = "Try again in ";
+            if (hours == 0)
+            {
+                tryAgainIn += $"{minutes} minute" + (minutes > 1 ? "s" : "");
+            }
+            else
+            {
+                tryAgainIn += $"{hours} hour" + (hours > 1 ? "s" : "");
+                if (minutes > 0)
+                {
+                    tryAgainIn += $"{minutes} minute" + (minutes > 1 ? "s" : "");
+                }
+            }
+
+            return string.Format(_settings.BotSettings.MessageDailyLimitReached, screenName, tryAgainIn);
         }
 
         public void Dispose()
