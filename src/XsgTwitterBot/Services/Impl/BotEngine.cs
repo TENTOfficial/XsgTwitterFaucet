@@ -107,7 +107,7 @@ namespace XsgTwitterBot.Services.Impl
                     if (!isTweetTextValid)
                     {
                         _logger.Information("Tweet is invalid");
-                        Tweet.PublishTweet(string.Format(_settings.BotSettings.MessageTweetInvalid, _settings.BotSettings.MinTweetLenght) , new PublishTweetOptionalParameters
+                        Tweet.PublishTweet(string.Format(_settings.BotSettings.MessageTweetInvalid, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.MinTweetLenght) , new PublishTweetOptionalParameters
                         {
                             InReplyToTweet = e.Tweet
                         });
@@ -147,9 +147,9 @@ namespace XsgTwitterBot.Services.Impl
             }
 
             var ratio = user.FollowersCount / user.FriendsCount;
-            if (ratio < 0.81m)
+            if (ratio < _settings.BotSettings.UserRatio)
             {
-                if (user.FollowersCount > 100)
+                if (user.FollowersCount > _settings.BotSettings.FollowersCountThreshold)
                     return false;
             }
 

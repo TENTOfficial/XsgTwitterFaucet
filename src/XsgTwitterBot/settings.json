@@ -15,6 +15,8 @@
   },
 
   "BotSettings": {
+    "UserRatio" : 0.81,
+    "FollowersCountThreshold" : 100,
     "MinTweetLenght": 90,
     "AmountForTweet": 0.5,
     "TrackKeywords": [ "#xsg", "#snowgem" ],
@@ -22,7 +24,7 @@
     "MessageDailyLimitReached": "@{0} You have reached the daily reward limit. {1}.",
     "MessageReachedLimit": "@{0} You have reached withdrawal limit. Gain additional followers to receive more rewards again!",
     "MessageFaucetDrained": "@{0} Sorry, the faucet has been drained. Please contact core team at https://discordapp.com/channels/398513312696107008/398513312696107010 for intervention.",
-    "MessageTweetInvalid" : "Tweet should have at least {0} characters."
+    "MessageTweetInvalid" : "@{0} Tweet should have at least {1} characters."
   },
   
   "StatSettings" : {
