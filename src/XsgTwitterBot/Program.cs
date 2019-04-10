@@ -21,7 +21,7 @@ namespace XsgTwitterBot
         {
             Enabled = true,
             AutoReset = true,
-            Interval = 1000 * 60 * 60 // 1 hour
+            Interval = 1000 * 60 * 60 * 4 // 4 hours
         };
 
         private static IContainer _container;

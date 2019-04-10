@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using System.Threading;
 using LiteDB;
 using Serilog;
 using Tweetinvi;
@@ -42,7 +43,23 @@ namespace XsgTwitterBot.Services.Impl
 
             _logger = Log.ForContext<BotEngine>();
 
-            RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackAndAwait;
+            RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackOnly;
+            
+            TweetinviEvents.QueryBeforeExecute += (sender, args) =>
+            {
+                var queryRateLimits = RateLimit.GetQueryRateLimit(args.QueryURL);
+	
+                if (queryRateLimits != null)
+                {
+                    if (queryRateLimits.Remaining > 0)
+                    {
+                        return;
+                    }
+
+                    _logger.Warning($"Waiting for RateLimits until : {queryRateLimits.ResetDateTime.ToLongTimeString()}");
+                    Thread.Sleep((int)queryRateLimits.ResetDateTimeInMilliseconds);
+                }
+            };
         }
 
         public void Start()
@@ -58,7 +75,7 @@ namespace XsgTwitterBot.Services.Impl
                     _settings.TwitterSettings.ConsumerSecret,
                     _settings.TwitterSettings.AccessToken,
                     _settings.TwitterSettings.AccessTokenSecret));
-
+                
                 _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
 
                 _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
@@ -93,7 +110,6 @@ namespace XsgTwitterBot.Services.Impl
                     if (string.IsNullOrWhiteSpace(targetAddress))
                         return;
 
-                    _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
                     _logger.Information("Received tweet '{Text}' from {Name} ", text, e.Tweet.CreatedBy.Name);
 
                     var isUserLegit = ValidateUser(e.Tweet.CreatedBy);
