@@ -93,7 +93,7 @@ namespace XsgTwitterBot.Services.Impl
                     if (string.IsNullOrWhiteSpace(targetAddress))
                         return;
 
-                    // _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
+                    _logger.Information("Rate limits: {@RateLimits}", RateLimit.GetCurrentCredentialsRateLimits());
                     _logger.Information("Received tweet '{Text}' from {Name} ", text, e.Tweet.CreatedBy.Name);
 
                     var isUserLegit = ValidateUser(e.Tweet.CreatedBy);
