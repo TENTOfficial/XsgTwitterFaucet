@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using LiteDB;
@@ -75,9 +76,7 @@ namespace XsgTwitterBot.Services.Impl
                     _settings.TwitterSettings.ConsumerSecret,
                     _settings.TwitterSettings.AccessToken,
                     _settings.TwitterSettings.AccessTokenSecret));
-                
                 _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
-
                 _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
                 _stream.StreamStopped += OnStreamStreamStopped;
                 _stream.StartStreamMatchingAnyConditionAsync();
@@ -90,9 +89,20 @@ namespace XsgTwitterBot.Services.Impl
         {
             lock (ProcessingLock)
             {
-                _logger.Information("Restarting BotEngine...");
+                _logger.Information("Stopping BotEngine...");
 
                 _stream.StopStream();
+                _stream = null;
+                
+                _logger.Information("Starting BotEngine...");
+                _stream = Stream.CreateFilteredStream(Auth.SetUserCredentials(
+                    _settings.TwitterSettings.ConsumerKey,
+                    _settings.TwitterSettings.ConsumerSecret,
+                    _settings.TwitterSettings.AccessToken,
+                    _settings.TwitterSettings.AccessTokenSecret));
+                _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
+                _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
+                _stream.StreamStopped += OnStreamStreamStopped;
                 _stream.StartStreamMatchingAnyConditionAsync();
 
                 _logger.Information("BotEngine has been restarted.");
@@ -150,8 +160,8 @@ namespace XsgTwitterBot.Services.Impl
         {
             if (e.Exception == null) return;
 
-            _logger.Error(e.Exception, "Failed to process tweet {@StreamExceptionEventArgs}", e);
-
+            _logger.Error(e.Exception, "Failed to process stream {@StreamExceptionEventArgs}", e);
+            Thread.Sleep(1000 * 60);
             Restart();
         }
 
