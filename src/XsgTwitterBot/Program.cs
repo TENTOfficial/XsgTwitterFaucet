@@ -21,7 +21,7 @@ namespace XsgTwitterBot
         {
             Enabled = true,
             AutoReset = true,
-            Interval = 1000 * 60 * 60 * 4 // 4 hours
+            Interval = 1000 * 60 * 60 * 1 // 1 hour
         };
 
         private static IContainer _container;
@@ -99,7 +99,7 @@ namespace XsgTwitterBot
 
             RestartTimer.Elapsed += (sender, args) =>
             {
-                _botEngine.Restart();
+                _botEngine.Start();
             };
 
             RestartTimer.Start();
