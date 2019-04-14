@@ -23,7 +23,7 @@ namespace XsgTwitterBot
             builder.Register(container => new LiteDatabase(dbPath)).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Reward>("rewards")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Stat>("stats")).SingleInstance();
-            builder.RegisterType<BotEngine>().InstancePerRequest();
+            builder.RegisterType<BotEngine>().InstancePerDependency();
         }
     }
 }
