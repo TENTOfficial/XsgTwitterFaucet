@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using LiteDB;
@@ -24,7 +25,7 @@ namespace XsgTwitterBot.Services.Impl
         private IFilteredStream _stream;
         private readonly LiteCollection<Reward> _rewardCollection;
         private readonly ILogger _logger;
-
+        private int _retryCount;
         static readonly object ProcessingLock = new object();
 
         public BotEngine(AppSettings settings, 
@@ -60,25 +61,7 @@ namespace XsgTwitterBot.Services.Impl
                 _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
                 _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
                 _stream.StreamStopped += OnStreamStreamStopped;
-                
-                RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackOnly;
-                TweetinviEvents.QueryBeforeExecute += (sender, args) =>
-                {
-                    var queryRateLimits = RateLimit.GetQueryRateLimit(args.QueryURL);
-	
-                    if (queryRateLimits != null)
-                    {
-                        _logger.Information("Current rate limits: {@RateLimits}", queryRateLimits);
-                        if (queryRateLimits.Remaining > 0)
-                        {
-                            return;
-                        }
-
-                        _logger.Warning($"Waiting for RateLimits until : {queryRateLimits.ResetDateTime.ToLongTimeString()}");
-                        Thread.Sleep((int)queryRateLimits.ResetDateTimeInMilliseconds);
-                    }
-                };
-                
+                RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackAndAwait;
                 _stream.StartStreamMatchingAnyConditionAsync();
                 
                 _logger.Information("BotEngine has been started.");
@@ -89,6 +72,8 @@ namespace XsgTwitterBot.Services.Impl
         {
             lock (ProcessingLock)
             {
+                _retryCount = 0;
+                
                 _logger.Information("Received tweet '{Text}' from {Name} ", e.Tweet.FullText, e.Tweet.CreatedBy.Name);
                 
                 if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
@@ -141,6 +126,19 @@ namespace XsgTwitterBot.Services.Impl
             if (e.Exception == null) return;
 
             _logger.Error(e.Exception, "Failed to process stream {@StreamExceptionEventArgs}", e);
+
+            if (e.Exception is WebException)
+            {
+                _retryCount++;
+
+                var minutes = 1000 * _retryCount * 60;
+                
+                _logger.Warning(e.Exception, "Retry to start bot in {minutes}", minutes);
+                
+                Thread.Sleep(minutes);
+                
+                _stream.StartStreamMatchingAnyConditionAsync();
+            }
         }
 
         private bool ValidateUser(IUser user)
