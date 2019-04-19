@@ -42,24 +42,6 @@ namespace XsgTwitterBot.Services.Impl
             _rewardCollection = rewardCollection;
 
             _logger = Log.ForContext<BotEngine>();
-
-            RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackOnly;
-            
-            TweetinviEvents.QueryBeforeExecute += (sender, args) =>
-            {
-                var queryRateLimits = RateLimit.GetQueryRateLimit(args.QueryURL);
-	
-                if (queryRateLimits != null)
-                {
-                    if (queryRateLimits.Remaining > 0)
-                    {
-                        return;
-                    }
-
-                    _logger.Warning($"Waiting for RateLimits until : {queryRateLimits.ResetDateTime.ToLongTimeString()}");
-                    Thread.Sleep((int)queryRateLimits.ResetDateTimeInMilliseconds);
-                }
-            };
         }
 
         public void Start()
@@ -78,8 +60,27 @@ namespace XsgTwitterBot.Services.Impl
                 _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
                 _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
                 _stream.StreamStopped += OnStreamStreamStopped;
-                _stream.StartStreamMatchingAnyConditionAsync();
+                
+                RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackOnly;
+                TweetinviEvents.QueryBeforeExecute += (sender, args) =>
+                {
+                    var queryRateLimits = RateLimit.GetQueryRateLimit(args.QueryURL);
+	
+                    if (queryRateLimits != null)
+                    {
+                        _logger.Information("Current rate limits: {@RateLimits}", queryRateLimits);
+                        if (queryRateLimits.Remaining > 0)
+                        {
+                            return;
+                        }
 
+                        _logger.Warning($"Waiting for RateLimits until : {queryRateLimits.ResetDateTime.ToLongTimeString()}");
+                        Thread.Sleep((int)queryRateLimits.ResetDateTimeInMilliseconds);
+                    }
+                };
+                
+                _stream.StartStreamMatchingAnyConditionAsync();
+                
                 _logger.Information("BotEngine has been started.");
             }
         }
@@ -88,14 +89,14 @@ namespace XsgTwitterBot.Services.Impl
         {
             lock (ProcessingLock)
             {
+                _logger.Information("Received tweet '{Text}' from {Name} ", e.Tweet.FullText, e.Tweet.CreatedBy.Name);
+                Auth.
                 if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
                 {
                     var text = Regex.Replace(e.Tweet.FullText, @"\r\n?|\n", " ");
                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                     if (string.IsNullOrWhiteSpace(targetAddress))
                         return;
-
-                    _logger.Information("Received tweet '{Text}' from {Name} ", text, e.Tweet.CreatedBy.Name);
 
                     var isUserLegit = ValidateUser(e.Tweet.CreatedBy);
                     if (!isUserLegit)
@@ -127,6 +128,10 @@ namespace XsgTwitterBot.Services.Impl
                     });
 
                     _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
+                }
+                else
+                {
+                    _logger.Information("Received tweet does not match required criteria.");
                 }
             }
         }
