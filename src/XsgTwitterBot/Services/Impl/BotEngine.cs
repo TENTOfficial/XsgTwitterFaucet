@@ -90,7 +90,7 @@ namespace XsgTwitterBot.Services.Impl
             lock (ProcessingLock)
             {
                 _logger.Information("Received tweet '{Text}' from {Name} ", e.Tweet.FullText, e.Tweet.CreatedBy.Name);
-                Auth.
+                
                 if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
                 {
                     var text = Regex.Replace(e.Tweet.FullText, @"\r\n?|\n", " ");
