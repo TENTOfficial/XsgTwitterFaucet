@@ -96,7 +96,7 @@ namespace XsgTwitterBot
         {
             _botEngine = _container.Resolve<BotEngine>();
             _botEngine.Start();
-
+/*
             RestartTimer.Elapsed += (sender, args) =>
             {
                 _botEngine.Start();
@@ -104,6 +104,7 @@ namespace XsgTwitterBot
 
             RestartTimer.Start();
 
+*/
             var cancellationTokenSource = new CancellationTokenSource();
             _statService = _container.Resolve<IStatService>();
             // _statService.RunPublisher(cancellationTokenSource.Token);
