@@ -26,7 +26,6 @@ namespace XsgTwitterBot
 
         private static IContainer _container;
         private static BotEngine _botEngine;
-        private static IStatService _statService;
 
         private static void Main(string[] args)
         {
@@ -96,18 +95,11 @@ namespace XsgTwitterBot
         {
             _botEngine = _container.Resolve<BotEngine>();
             _botEngine.Start();
-/*
-            RestartTimer.Elapsed += (sender, args) =>
+
+            SchedulerServiceHelper.IntervalInDays(00, 00, 1, () =>
             {
-                _botEngine.Start();
-            };
-
-            RestartTimer.Start();
-
-*/
-            var cancellationTokenSource = new CancellationTokenSource();
-            _statService = _container.Resolve<IStatService>();
-            // _statService.RunPublisher(cancellationTokenSource.Token);
+                _container.Resolve<IStatService>().Publish();
+            });
             
             Console.CancelKeyPress += (o, e) =>
             {
@@ -117,8 +109,6 @@ namespace XsgTwitterBot
 
                 _botEngine.Dispose();
                 _container.Dispose();
-                
-                cancellationTokenSource.Cancel();
 
                 WaitHandle.Set();
             };
