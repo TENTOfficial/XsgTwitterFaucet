@@ -127,18 +127,15 @@ namespace XsgTwitterBot.Services.Impl
 
             _logger.Error(e.Exception, "Failed to process stream {@StreamExceptionEventArgs}", e);
 
-            if (e.Exception is WebException)
-            {
-                _retryCount++;
+            _retryCount++;
 
-                var minutes = 1000 * _retryCount * 60;
+            var minutes = 1000 * _retryCount * 60;
                 
-                _logger.Warning(e.Exception, "Retry to start bot in {minutes}", minutes);
+            _logger.Warning(e.Exception, "Retry to start bot in {minutes}", minutes);
                 
-                Thread.Sleep(minutes);
+            Thread.Sleep(minutes);
                 
-                _stream.StartStreamMatchingAnyConditionAsync();
-            }
+            _stream.StartStreamMatchingAnyConditionAsync();
         }
 
         private bool ValidateUser(IUser user)
