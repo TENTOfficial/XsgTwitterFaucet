@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac;
+using FluentScheduler;
 using XsgTwitterBot.Services.Impl;
 using Microsoft.Extensions.Configuration;
 using Serilog;
@@ -96,10 +97,8 @@ namespace XsgTwitterBot
             _botEngine = _container.Resolve<BotEngine>();
             _botEngine.Start();
 
-            SchedulerServiceHelper.IntervalInDays(00, 00, 1, () =>
-            {
-                _container.Resolve<IStatService>().Publish();
-            });
+            JobManager.Initialize();
+            JobManager.AddJob(() => _container.Resolve<IStatService>().Publish(), (s) => s.ToRunEvery(1).Days().At(23, 55));
             
             Console.CancelKeyPress += (o, e) =>
             {
