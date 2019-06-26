@@ -10,7 +10,8 @@ RUN apt-get autoclean && apt-get autoremove && apt-get update && \
 RUN apt-get install unzip
 
 WORKDIR /temp
-RUN wget -O snowgem.zip https://github.com/Snowgem/Snowgem/releases/download/3000451-20190128/snowgem-linux-3000451-20190128.zip
+RUN wget -O snowgem.zip https://github.com/Snowgem/Snowgem/releases/download/3000453-20190603/snowgem-ubuntu18.04-3000453-20190603.zip
+
 RUN chmod +rwx snowgem.zip
 RUN unzip snowgem.zip -d /node
 
