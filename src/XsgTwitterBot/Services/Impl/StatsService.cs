@@ -1,6 +1,4 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using LiteDB;
 using Serilog;
 using Tweetinvi;
@@ -21,54 +19,67 @@ namespace XsgTwitterBot.Services.Impl
             _stats = dailyStats;
             _logger = Log.ForContext<StatsService>();
         }
-
+        
         public void Publish()
         {
-            var nextDay = DateTime.UtcNow.Date;
-            var endOfDay = nextDay.AddSeconds(-1);
-            var dailyStatId = long.Parse($"{endOfDay.Year}{endOfDay.Month}{endOfDay.Day}");
-            var monthlyStatId = long.Parse($"{endOfDay.Year}{endOfDay.Month}{endOfDay.Day}");
-            var yearlyStatId = long.Parse($"{endOfDay.Year}{endOfDay.Month}{endOfDay.Day}");
+            var previousDay = DateTime.UtcNow.AddSeconds(-1);
 
-            var dailyStat = _stats.FindOne(x => x.Id == dailyStatId);
-            var dailyStatTweetMessage = string.Format(_appSettings.StatSettings.DailyMessage,
-                $"{endOfDay.Date.Day}/{endOfDay.Date.Month}/{endOfDay.Date.Year}", dailyStat.NewUsers,
-                dailyStat.WithdrawalAmount, dailyStat.TotalWithdrawals);
+            var dailyStatId = GetDailyStatId(previousDay);
             
-            Tweet.PublishTweet(dailyStatTweetMessage);
-
-            _logger.Information("Published stats for {@DailyStatTweetMessage}", dailyStatTweetMessage);
-
-            if (nextDay.Month > endOfDay.Month)
+            var dailyStat = _stats.FindOne(x => x.Id == dailyStatId);
+            if (dailyStat != null)
             {
-                var monthlyStat = _stats.FindOne(x => x.Id == monthlyStatId);
-                var monthlyStatMessage = string.Format(_appSettings.StatSettings.MonthlyMessage,
-                    $"{endOfDay.Date.Month}/{endOfDay.Date.Year}", monthlyStat.NewUsers, monthlyStat.WithdrawalAmount,
-                    monthlyStat.TotalWithdrawals);
+                var dailyStatTweetMessage = string.Format(_appSettings.StatSettings.DailyMessage,
+                    $"{previousDay.Date.Day}/{previousDay.Date.Month}/{previousDay.Date.Year}", dailyStat.NewUsers,
+                    dailyStat.WithdrawalAmount, dailyStat.TotalWithdrawals);
+            
+                Tweet.PublishTweet(dailyStatTweetMessage);
                 
-                Tweet.PublishTweet(monthlyStatMessage);
+                _logger.Information("Published stats for {@DailyStatTweetMessage}", dailyStatTweetMessage);
+            }
+           
+            if (DateTime.UtcNow.Date.Month > previousDay.Month)
+            {
+                var monthlyStatId = GetMonthlyStatId(previousDay);
+                var monthlyStat = _stats.FindOne(x => x.Id == monthlyStatId);
+                if (monthlyStat != null)
+                {
+                    var monthlyStatMessage = string.Format(_appSettings.StatSettings.MonthlyMessage,
+                        $"{previousDay.Date.Month}/{previousDay.Date.Year}", monthlyStat.NewUsers, monthlyStat.WithdrawalAmount,
+                        monthlyStat.TotalWithdrawals);
+                
+                    Tweet.PublishTweet(monthlyStatMessage);
 
-                _logger.Information("Published stats for {@MonthlyStatMessage}", monthlyStatMessage);
+                    _logger.Information("Published stats for {@MonthlyStatMessage}", monthlyStatMessage);    
+                }
             }
 
-            if (nextDay.Year > endOfDay.Year)
+            if (DateTime.UtcNow.Date.Year > previousDay.Year)
             {
+                var yearlyStatId = GetYearlyStatId(previousDay);
                 var yearlyStat = _stats.FindOne(x => x.Id == yearlyStatId);
-                var yearlyStatMessage = string.Format(_appSettings.StatSettings.MonthlyMessage, endOfDay.Date.Year,
-                    yearlyStat.NewUsers, yearlyStat.WithdrawalAmount, yearlyStat.TotalWithdrawals);
+                if (yearlyStat != null)
+                {
+                    var yearlyStatMessage = string.Format(_appSettings.StatSettings.MonthlyMessage, previousDay.Date.Year,
+                        yearlyStat.NewUsers, yearlyStat.WithdrawalAmount, yearlyStat.TotalWithdrawals);
                 
-                Tweet.PublishTweet(yearlyStatMessage);
+                    Tweet.PublishTweet(yearlyStatMessage);
 
-                _logger.Information("Published stats for {@YearlyStatMessage}", yearlyStatMessage);
+                    _logger.Information("Published stats for {@YearlyStatMessage}", yearlyStatMessage);    
+                }
             }
         }
 
         public void AddStat(DateTime date, decimal amount, bool isNewUser)
         {
-            AddStatInternal(long.Parse($"{date.Year}{date.Month}{date.Day}"), amount, isNewUser);
-            AddStatInternal(long.Parse($"{date.Year}{date.Month}"), amount, isNewUser);
-            AddStatInternal(long.Parse($"{date.Year}"), amount, isNewUser);
+            AddStatInternal(GetDailyStatId(date), amount, isNewUser);
+            AddStatInternal(GetMonthlyStatId(date), amount, isNewUser);
+            AddStatInternal(GetYearlyStatId(date), amount, isNewUser);
         }
+        
+        private long GetDailyStatId(DateTime date) => long.Parse($"{date.Year}{date.Month}{date.Day}");
+        private long GetMonthlyStatId(DateTime date) => long.Parse($"{date.Year}{date.Month}");
+        private long GetYearlyStatId(DateTime date) => long.Parse($"{date.Year}");
 
         private void AddStatInternal(long id, decimal amount, bool isNewUser)
         {

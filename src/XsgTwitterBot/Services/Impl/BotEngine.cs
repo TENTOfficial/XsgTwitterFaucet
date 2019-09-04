@@ -1,115 +1,138 @@
-﻿using System;
-using System.Net;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using LiteDB;
 using Serilog;
 using Tweetinvi;
-using Tweetinvi.Core.Extensions;
-using Tweetinvi.Events;
+using Tweetinvi.Logic.Model;
 using Tweetinvi.Models;
 using Tweetinvi.Parameters;
-using Tweetinvi.Streaming;
 using XsgTwitterBot.Configuration;
 using XsgTwitterBot.Models;
 
 namespace XsgTwitterBot.Services.Impl
 {
-    public class BotEngine : IDisposable
+    public class BotEngine : BotEngineBase
     {
-        private readonly AppSettings _settings;
+        private readonly ILogger _logger = Log.ForContext<BotEngine>();
+        private readonly AppSettings _appSettings;
         private readonly IMessageParser _messageParser;
         private readonly IWithdrawalService _withdrawalService;
         private readonly ISyncCheckService _syncCheckService;
         private readonly IStatService _statService;
-        private IFilteredStream _stream;
         private readonly LiteCollection<Reward> _rewardCollection;
-        private readonly ILogger _logger;
-        private int _retryCount;
-        static readonly object ProcessingLock = new object();
 
-        public BotEngine(AppSettings settings, 
+        private string _cursorId = "current";
+        private readonly LiteCollection<Cursor> _cursor;
+
+        public BotEngine(AppSettings appSettings,
             IMessageParser messageParser, 
             IWithdrawalService withdrawalService,
             ISyncCheckService syncCheckService, 
             IStatService statService,
-            LiteCollection<Reward> rewardCollection)
+            LiteCollection<Reward> rewardCollection, 
+            LiteCollection<Cursor> cursor)
         {
-            _settings = settings;
+            _appSettings = appSettings;
             _messageParser = messageParser;
             _withdrawalService = withdrawalService;
             _syncCheckService = syncCheckService;
             _statService = statService;
             _rewardCollection = rewardCollection;
-
-            _logger = Log.ForContext<BotEngine>();
+            _cursor = cursor;
         }
-
-        public void Start()
+        
+        protected override void RunLoop()
         {
-            lock (ProcessingLock)
-            {
-                _logger.Information("Starting BotEngine...");
+            var sleepMultiplier = 1;
 
-                _syncCheckService.WaitUntilSyncedAsync().GetAwaiter().GetResult();
-                
-                _stream = Stream.CreateFilteredStream(Auth.SetUserCredentials(
-                    _settings.TwitterSettings.ConsumerKey,
-                    _settings.TwitterSettings.ConsumerSecret,
-                    _settings.TwitterSettings.AccessToken,
-                    _settings.TwitterSettings.AccessTokenSecret));
-                _settings.BotSettings.TrackKeywords.ForEach(keyword => _stream.AddTrack(keyword));
-                _stream.MatchingTweetReceived += OnStreamOnMatchingTweetReceived;
-                _stream.StreamStopped += OnStreamStreamStopped;
-                RateLimit.RateLimitTrackerMode = RateLimitTrackerMode.TrackAndAwait;
-                _stream.StartStreamMatchingAnyConditionAsync();
-                
-                _logger.Information("BotEngine has been started.");
+            SetUserCredentials();
+            
+            while (!CancellationTokenSource.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    var query = string.Join(" ", _appSettings.BotSettings.TrackKeywords);
+                    var cursor = _cursor.FindById(_cursorId);
+                    
+                    var searchParameter = new SearchTweetsParameters(query)
+                    {
+                        SearchType = SearchResultType.Recent
+                    };
+
+                    if (cursor != null)
+                    {
+                        searchParameter.SinceId = cursor.TweetId;
+                        searchParameter.MaximumNumberOfResults = 100;
+                    }
+                    else
+                    {
+                        searchParameter.MaximumNumberOfResults = 1;
+                    }
+                    
+                    ProcessTweets(Search.SearchTweets(searchParameter).OrderBy(x => x.Id).ToList());
+                    
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex,"Failed to process tweets");
+                    sleepMultiplier = 10;
+                    SetUserCredentials();
+                }
+                finally
+                {
+                    CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency * sleepMultiplier);
+                    sleepMultiplier = 1;
+                }
+
+                if (CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency))
+                {
+                    break;
+                }
             }
         }
- 
-        private void OnStreamOnMatchingTweetReceived(object sender, MatchedTweetReceivedEventArgs e)
+
+        private void ProcessTweets(List<ITweet> tweets)
         {
-            lock (ProcessingLock)
+            foreach (var tweet in tweets)
             {
-                _retryCount = 0;
+                 _logger.Information("Received tweet '{Text}' from {Name} ", tweet.FullText, tweet.CreatedBy.Name);
                 
-                _logger.Information("Received tweet '{Text}' from {Name} ", e.Tweet.FullText, e.Tweet.CreatedBy.Name);
-                
-                if (string.IsNullOrWhiteSpace(e.Tweet.InReplyToScreenName))
+                if (string.IsNullOrWhiteSpace(tweet.InReplyToScreenName))
                 {
-                    var text = Regex.Replace(e.Tweet.FullText, @"\r\n?|\n", " ");
+                    var text = Regex.Replace(tweet.FullText, @"\r\n?|\n", " ");
                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                     if (string.IsNullOrWhiteSpace(targetAddress))
                         return;
 
-                    var isUserLegit = ValidateUser(e.Tweet.CreatedBy);
+                    var isUserLegit = ValidateUser(tweet.CreatedBy);
                     if (!isUserLegit)
                     {
-                        _logger.Information("Ignoring tweet from user {@User}", e.Tweet.CreatedBy);
+                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
                         return;
                     }
 
-                    var isTweetTextValid = ValidateTweetText(e.Tweet.Text);
+                    var isTweetTextValid = ValidateTweetText(tweet.Text);
                     if (!isTweetTextValid)
                     {
                         _logger.Information("Tweet is invalid");
-                        Tweet.PublishTweet(string.Format(_settings.BotSettings.MessageTweetInvalid, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.MinTweetLenght) , new PublishTweetOptionalParameters
+                        Tweet.PublishTweet(string.Format(_appSettings.BotSettings.MessageTweetInvalid, tweet.CreatedBy.ScreenName, _appSettings.BotSettings.MinTweetLenght) , new PublishTweetOptionalParameters
                         {
-                            InReplyToTweet = e.Tweet
+                            InReplyToTweet = tweet
                         });
                         
                         return;
                     }
                     
-                    var reward = _rewardCollection.FindOne(x => x.Id == e.Tweet.CreatedBy.Id);
-                    var replyMessage = reward != null ? HandleExistingUser(e, targetAddress, reward) : HandleNewUser(e, targetAddress);
+                    var reward = _rewardCollection.FindOne(x => x.Id == tweet.CreatedBy.Id);
+                    var replyMessage = reward != null ? HandleExistingUser(tweet, targetAddress, reward) : HandleNewUser(tweet, targetAddress);
 
                     _logger.Information("Replied with message '{ReplyMessage}'", replyMessage);
 
                     Tweet.PublishTweet(replyMessage, new PublishTweetOptionalParameters
                     {
-                        InReplyToTweet = e.Tweet
+                        InReplyToTweet = tweet
                     });
 
                     _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
@@ -118,27 +141,13 @@ namespace XsgTwitterBot.Services.Impl
                 {
                     _logger.Information("Received tweet does not match required criteria.");
                 }
+
+
+                _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, TweetId = tweet.Id, UpdateAt = DateTime.UtcNow});
             }
         }
-
-        private void OnStreamStreamStopped(object sender, StreamExceptionEventArgs e)
-        {
-            if (e.Exception == null) return;
-
-            _logger.Error(e.Exception, "Failed to process stream {@StreamExceptionEventArgs}", e);
-
-            _retryCount++;
-
-            var minutes = 1000 * _retryCount * 60;
-                
-            _logger.Warning(e.Exception, "Retry to start bot in {minutes}", minutes);
-                
-            Thread.Sleep(minutes);
-                
-            _stream.StartStreamMatchingAnyConditionAsync();
-        }
-
-        private bool ValidateUser(IUser user)
+        
+         private bool ValidateUser(IUser user)
         {
             if (user.FriendsCount >= user.FollowersCount && user.FriendsCount > 10)
             {
@@ -146,9 +155,9 @@ namespace XsgTwitterBot.Services.Impl
             }
 
             var ratio = user.FollowersCount / user.FriendsCount;
-            if (ratio < _settings.BotSettings.UserRatio)
+            if (ratio < _appSettings.BotSettings.UserRatio)
             {
-                if (user.FollowersCount > _settings.BotSettings.FollowersCountThreshold)
+                if (user.FollowersCount > _appSettings.BotSettings.FollowersCountThreshold)
                     return false;
             }
 
@@ -157,60 +166,60 @@ namespace XsgTwitterBot.Services.Impl
 
         private bool ValidateTweetText(string text)
         {
-            return text.Length >= _settings.BotSettings.MinTweetLenght;
+            return text.Length >= _appSettings.BotSettings.MinTweetLenght;
         }
 
-        private string HandleNewUser(MatchedTweetReceivedEventArgs e, string targetAddress)
+        private string HandleNewUser(ITweet tweet, string targetAddress)
         {
             var canWithdraw = _withdrawalService.CanExecuteAsync().GetAwaiter().GetResult();
             if (!canWithdraw)
             {
                 _logger.Warning("Not enough funds for withdrawal.");
-                return string.Format(_settings.BotSettings.MessageFaucetDrained, e.Tweet.CreatedBy.ScreenName);
+                return string.Format(_appSettings.BotSettings.MessageFaucetDrained, tweet.CreatedBy.ScreenName);
             }
 
             _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
-            _statService.AddStat(DateTime.UtcNow, _settings.BotSettings.AmountForTweet, true);
+            _statService.AddStat(DateTime.UtcNow, _appSettings.BotSettings.AmountForTweet, true);
 
             var reward = new Reward
             {
-                Id = e.Tweet.CreatedBy.Id,
-                Followers = e.Tweet.CreatedBy.FollowersCount,
+                Id = tweet.CreatedBy.Id,
+                Followers = tweet.CreatedBy.FollowersCount,
                 LastRewardDate = DateTime.UtcNow,
                 Withdrawals = 1
             };
 
             _rewardCollection.Insert(reward);
 
-            return string.Format(_settings.BotSettings.MessageRewarded, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.AmountForTweet);
+            return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName, _appSettings.BotSettings.AmountForTweet);
         }
 
-        private string HandleExistingUser(MatchedTweetReceivedEventArgs e, string targetAddress, Reward reward)
+        private string HandleExistingUser(ITweet tweet, string targetAddress, Reward reward)
         {
             var canWithdraw = _withdrawalService.CanExecuteAsync().GetAwaiter().GetResult();
             if (!canWithdraw)
             {
                 _logger.Warning("Not enough funds for withdrawal.");
-                return string.Format(_settings.BotSettings.MessageFaucetDrained, e.Tweet.CreatedBy.ScreenName);
+                return string.Format(_appSettings.BotSettings.MessageFaucetDrained, tweet.CreatedBy.ScreenName);
             }
 
             string replyMessage;
-            reward.Followers = e.Tweet.CreatedBy.FollowersCount;
+            reward.Followers = tweet.CreatedBy.FollowersCount;
 
             if (reward.Withdrawals >= reward.Followers)
             {
-                replyMessage = string.Format(_settings.BotSettings.MessageReachedLimit, e.Tweet.CreatedBy.ScreenName);
+                replyMessage = string.Format(_appSettings.BotSettings.MessageReachedLimit, tweet.CreatedBy.ScreenName);
             }
             else if (reward.LastRewardDate.Date.Equals(DateTime.UtcNow.Date))
             {
-                replyMessage = GenerateMessageDailyLimitReached(e.Tweet.CreatedBy.ScreenName);
+                replyMessage = GenerateMessageDailyLimitReached(tweet.CreatedBy.ScreenName);
             }
             else
             {
-                replyMessage = string.Format(_settings.BotSettings.MessageRewarded, e.Tweet.CreatedBy.ScreenName, _settings.BotSettings.AmountForTweet);
+                replyMessage = string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName, _appSettings.BotSettings.AmountForTweet);
 
                 _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
-                _statService.AddStat(DateTime.UtcNow, _settings.BotSettings.AmountForTweet, false);
+                _statService.AddStat(DateTime.UtcNow, _appSettings.BotSettings.AmountForTweet, false);
 
                 reward.LastRewardDate = DateTime.UtcNow;
                 reward.Withdrawals++;
@@ -241,14 +250,16 @@ namespace XsgTwitterBot.Services.Impl
                 }
             }
 
-            return string.Format(_settings.BotSettings.MessageDailyLimitReached, screenName, tryAgainIn);
+            return string.Format(_appSettings.BotSettings.MessageDailyLimitReached, screenName, tryAgainIn);
         }
 
-        public void Dispose()
+        private void SetUserCredentials()
         {
-            _logger.Information("Stopping BotEngine...");
-           _stream?.StopStream();
-           _stream = null;
+            Auth.SetUserCredentials(
+                _appSettings.TwitterSettings.ConsumerKey,
+                _appSettings.TwitterSettings.ConsumerSecret,
+                _appSettings.TwitterSettings.AccessToken,
+                _appSettings.TwitterSettings.AccessTokenSecret);
         }
     }
 }

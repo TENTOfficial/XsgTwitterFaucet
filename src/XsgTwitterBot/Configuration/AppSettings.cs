@@ -9,7 +9,8 @@
         public TwitterSettings TwitterSettings { get; set; }
 
         public BotSettings BotSettings { get; set; }
-        
+
         public StatSettings StatSettings { get; set; }
+        public int ProcessingFrequency { get; set; }  = 60000;
     }
 }

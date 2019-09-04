@@ -18,13 +18,6 @@ namespace XsgTwitterBot
         private static readonly AutoResetEvent WaitHandle = new AutoResetEvent(false);
         private static readonly AppSettings AppSettings = new AppSettings();
 
-        private static readonly Timer RestartTimer = new Timer
-        {
-            Enabled = true,
-            AutoReset = true,
-            Interval = 1000 * 60 * 60 * 4 
-        };
-
         private static IContainer _container;
         private static BotEngine _botEngine;
 
@@ -36,6 +29,7 @@ namespace XsgTwitterBot
                 SetupLogger();
                 SetupContainer();
                 WaitForNodeConnectivity();
+                WaitUntilNodeSynced();
                 RunBotEngine();
             }
             catch (Exception ex)
@@ -92,21 +86,22 @@ namespace XsgTwitterBot
             }
         }
 
+        private static void WaitUntilNodeSynced()
+        {
+            _container.Resolve<ISyncCheckService>().WaitUntilSyncedAsync().GetAwaiter().GetResult();
+        }
+        
         private static void RunBotEngine()
         {
             _botEngine = _container.Resolve<BotEngine>();
             _botEngine.Start();
 
             JobManager.Initialize();
-            JobManager.AddJob(() => _container.Resolve<IStatService>().Publish(), (s) => s.ToRunEvery(1).Days().At(23, 55));
+            JobManager.AddJob(() => _container.Resolve<IStatService>().Publish(), (s) => s.ToRunEvery(1).Days().At(00, 00));
             
             Console.CancelKeyPress += (o, e) =>
             {
-                RestartTimer.Enabled = false;
-                RestartTimer.Stop();
-                RestartTimer.Dispose();
-
-                _botEngine.Dispose();
+                _botEngine.Stop();
                 _container.Dispose();
 
                 WaitHandle.Set();

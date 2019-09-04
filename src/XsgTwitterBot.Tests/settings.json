@@ -1,0 +1,36 @@
+﻿{
+  "LogServerUrl": "http://logger:5341",
+
+  "NodeOptions": {
+    "AuthUserPassword": "pwd1",
+    "AuthUserName": "demzet",
+    "Url": "http://localhost:8232"
+  },
+
+  "TwitterSettings": {
+    "ConsumerKey": "cM3Yp838OhlLcUyypywvSdPDf",
+    "ConsumerSecret": "i7eGOy7cgkURSEBIwUNQmPNL9E6lcexUESzLLe8cE9fGAQyZzR",
+    "AccessToken": "2858559033-fl2en3Zvdntmyfj9C6Klzp6JM5Hl7WYqWIQcpJl",
+    "AccessTokenSecret": "ZsQejoY7Ey131hw6yz3rp878eNgOs4WQsfZ97X48gPpXf"
+  },
+
+  "BotSettings": {
+    "UserRatio" : 0.81,
+    "FollowersCountThreshold" : 100,
+    "MinTweetLenght": 90,
+    "AmountForTweet": 1,
+    "TrackKeywords": ["#snowgem #xsg"],
+    "MessageRewarded": "@{0} Your tweet has been rewarded with {1} XSG.",
+    "MessageDailyLimitReached": "@{0} You have reached the daily reward limit. {1}.",
+    "MessageReachedLimit": "@{0} You have reached withdrawal limit. Gain additional followers to receive more rewards again!",
+    "MessageFaucetDrained": "@{0} Sorry, the faucet has been drained. Please contact core team at https://discordapp.com/channels/398513312696107008/398513312696107010 for intervention.",
+    "MessageTweetInvalid" : "@{0} Tweet should have at least {1} characters."
+  },
+  
+  "StatSettings" : {
+    "DailyMessage"   : "Daily '{0}' stats \n new users: {1} \n total amount withdrawn: {2} XSG \n  total tweets sent: {3}",
+    "MonthlyMessage" : "Monthly '{0}' stats \n new users: {1} \n total amount withdrawn: {2} XSG \n  total tweets sent: {3}",
+    "YearlyMessage"  : "Yearly '{0}' stats \n new users: {1} \n total amount withdrawn: {2} XSG \n  total tweets sent: {3}"
+  }
+
+}
