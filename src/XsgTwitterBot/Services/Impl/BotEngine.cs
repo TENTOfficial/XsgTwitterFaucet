@@ -62,17 +62,14 @@ namespace XsgTwitterBot.Services.Impl
                     if (cursor != null)
                     {
                         searchParameter.SinceId = cursor.TweetId;
-                        searchParameter.MaximumNumberOfResults = 100;
+                        searchParameter.MaximumNumberOfResults = 25;
                     }
                     else
                     {
                         searchParameter.MaximumNumberOfResults = 1;
                     }
-                    
-                    _logger.Debug("Search criteria {@searchParameter}s", searchParameter);
-                    
+
                     ProcessTweets(Search.SearchTweets(searchParameter).OrderBy(x => x.Id).ToList());
-                    
                 }
                 catch (Exception ex)
                 {
@@ -95,8 +92,6 @@ namespace XsgTwitterBot.Services.Impl
 
         private void ProcessTweets(List<ITweet> tweets)
         {
-            _logger.Information("Found {Counts} tweets to process {@tweets}", tweets.Count, tweets);
-            
             foreach (var tweet in tweets)
             {
                  _logger.Information("Received tweet ({Id}) '{Text}' from {Name} ", tweet.Id, tweet.FullText, tweet.CreatedBy.Name);
@@ -106,13 +101,17 @@ namespace XsgTwitterBot.Services.Impl
                     var text = Regex.Replace(tweet.FullText, @"\r\n?|\n", " ");
                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                     if (string.IsNullOrWhiteSpace(targetAddress))
-                        return;
-
+                    {
+                        UpsertCursor(tweet.Id);
+                        continue;
+                    }
+                        
                     var isUserLegit = ValidateUser(tweet.CreatedBy);
                     if (!isUserLegit)
                     {
                         _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
-                        return;
+                        UpsertCursor(tweet.Id);
+                        continue;
                     }
 
                     var isTweetTextValid = ValidateTweetText(tweet.Text);
@@ -124,7 +123,8 @@ namespace XsgTwitterBot.Services.Impl
                             InReplyToTweet = tweet
                         });
                         
-                        return;
+                        UpsertCursor(tweet.Id);
+                        continue;
                     }
                     
                     var reward = _rewardCollection.FindOne(x => x.Id == tweet.CreatedBy.Id);
@@ -144,9 +144,13 @@ namespace XsgTwitterBot.Services.Impl
                     _logger.Information("Received tweet does not match required criteria.");
                 }
 
-
-                _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, TweetId = tweet.Id, UpdateAt = DateTime.UtcNow});
+                UpsertCursor(tweet.Id);
             }
+        }
+
+        private void UpsertCursor(long tweetId)
+        {
+            _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, TweetId = tweetId, UpdateAt = DateTime.UtcNow});
         }
         
          private bool ValidateUser(IUser user)
