@@ -55,6 +55,7 @@ namespace XsgTwitterBot.Services.Impl
                     
                     var searchParameter = new SearchTweetsParameters(query)
                     {
+                        TweetSearchType =  TweetSearchType.OriginalTweetsOnly,
                         SearchType = SearchResultType.Recent
                     };
 
@@ -67,6 +68,8 @@ namespace XsgTwitterBot.Services.Impl
                     {
                         searchParameter.MaximumNumberOfResults = 1;
                     }
+                    
+                    _logger.Debug("Search criteria {@searchParameter}s", searchParameter);
                     
                     ProcessTweets(Search.SearchTweets(searchParameter).OrderBy(x => x.Id).ToList());
                     
@@ -92,6 +95,8 @@ namespace XsgTwitterBot.Services.Impl
 
         private void ProcessTweets(List<ITweet> tweets)
         {
+            _logger.Information("Found {Counts} tweets to process", tweets.Count);
+            
             foreach (var tweet in tweets)
             {
                  _logger.Information("Received tweet ({Id}) '{Text}' from {Name} ", tweet.Id, tweet.FullText, tweet.CreatedBy.Name);
