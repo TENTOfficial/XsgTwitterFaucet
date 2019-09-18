@@ -95,7 +95,7 @@ namespace XsgTwitterBot.Services.Impl
 
         private void ProcessTweets(List<ITweet> tweets)
         {
-            _logger.Information("Found {Counts} tweets to process", tweets.Count);
+            _logger.Information("Found {Counts} tweets to process {@tweets}", tweets.Count, tweets);
             
             foreach (var tweet in tweets)
             {
