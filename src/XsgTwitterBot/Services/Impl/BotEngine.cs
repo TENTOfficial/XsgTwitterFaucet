@@ -19,7 +19,6 @@ namespace XsgTwitterBot.Services.Impl
         private readonly AppSettings _appSettings;
         private readonly IMessageParser _messageParser;
         private readonly IWithdrawalService _withdrawalService;
-        private readonly ISyncCheckService _syncCheckService;
         private readonly IStatService _statService;
         private readonly LiteCollection<Reward> _rewardCollection;
 
@@ -29,7 +28,6 @@ namespace XsgTwitterBot.Services.Impl
         public BotEngine(AppSettings appSettings,
             IMessageParser messageParser, 
             IWithdrawalService withdrawalService,
-            ISyncCheckService syncCheckService, 
             IStatService statService,
             LiteCollection<Reward> rewardCollection, 
             LiteCollection<Cursor> cursor)
@@ -37,7 +35,6 @@ namespace XsgTwitterBot.Services.Impl
             _appSettings = appSettings;
             _messageParser = messageParser;
             _withdrawalService = withdrawalService;
-            _syncCheckService = syncCheckService;
             _statService = statService;
             _rewardCollection = rewardCollection;
             _cursor = cursor;
@@ -97,7 +94,7 @@ namespace XsgTwitterBot.Services.Impl
         {
             foreach (var tweet in tweets)
             {
-                 _logger.Information("Received tweet '{Text}' from {Name} ", tweet.FullText, tweet.CreatedBy.Name);
+                 _logger.Information("Received tweet ({Id}) '{Text}' from {Name} ", tweet.Id, tweet.FullText, tweet.CreatedBy.Name);
                 
                 if (string.IsNullOrWhiteSpace(tweet.InReplyToScreenName))
                 {
