@@ -9,4 +9,9 @@ namespace XsgTwitterBot.Models
         public int Withdrawals { get; set; }
         public DateTime LastRewardDate { get; set; }
     }
+
+    public class FriendTagMap
+    {
+        public string Id { get; set; }
+    }
 }

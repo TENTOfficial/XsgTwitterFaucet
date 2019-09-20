@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using LiteDB;
 using Serilog;
@@ -21,6 +22,7 @@ namespace XsgTwitterBot.Services.Impl
         private readonly IWithdrawalService _withdrawalService;
         private readonly IStatService _statService;
         private readonly LiteCollection<Reward> _rewardCollection;
+        private readonly LiteCollection<FriendTagMap> _friendTagMapCollection;
 
         private string _cursorId = "current";
         private readonly LiteCollection<Cursor> _cursor;
@@ -30,6 +32,7 @@ namespace XsgTwitterBot.Services.Impl
             IWithdrawalService withdrawalService,
             IStatService statService,
             LiteCollection<Reward> rewardCollection, 
+            LiteCollection<FriendTagMap> friendTagMapCollection,
             LiteCollection<Cursor> cursor)
         {
             _appSettings = appSettings;
@@ -37,6 +40,7 @@ namespace XsgTwitterBot.Services.Impl
             _withdrawalService = withdrawalService;
             _statService = statService;
             _rewardCollection = rewardCollection;
+            _friendTagMapCollection = friendTagMapCollection;
             _cursor = cursor;
         }
         
@@ -56,7 +60,8 @@ namespace XsgTwitterBot.Services.Impl
                     var searchParameter = new SearchTweetsParameters(query)
                     {
                         TweetSearchType =  TweetSearchType.OriginalTweetsOnly,
-                        SearchType = SearchResultType.Recent
+                        SearchType = SearchResultType.Recent,
+                        
                     };
 
                     if (cursor != null)
@@ -88,6 +93,23 @@ namespace XsgTwitterBot.Services.Impl
                     break;
                 }
             }
+        }
+ 
+        private IUser GetFriendMentioned(ITweet tweet)
+        {
+            var user = tweet.UserMentions.FirstOrDefault();
+            if (user != null)
+            {
+                var friends = User.GetFriends(tweet.CreatedBy);
+                return friends.FirstOrDefault(x => x.Id == user.Id);    
+            }
+
+            return null;
+        }
+
+        private bool CanMentionFriend(ITweet tweet, IUser friend)
+        {
+            return !_friendTagMapCollection.Exists(x => x.Id == $"{tweet.CreatedBy.Id}@{friend.Id}");
         }
 
         private void ProcessTweets(List<ITweet> tweets)
@@ -177,15 +199,23 @@ namespace XsgTwitterBot.Services.Impl
 
         private string HandleNewUser(ITweet tweet, string targetAddress)
         {
-            var canWithdraw = _withdrawalService.CanExecuteAsync().GetAwaiter().GetResult();
+            var friend = GetFriendMentioned(tweet);
+            var rewardType = friend != null ? RewardType.FriendMention : RewardType.Tag;
+
+            var canWithdraw = _withdrawalService.CanExecuteAsync(rewardType).GetAwaiter().GetResult();
             if (!canWithdraw)
             {
                 _logger.Warning("Not enough funds for withdrawal.");
-                return string.Format(_appSettings.BotSettings.MessageFaucetDrained, tweet.CreatedBy.ScreenName);
+                return string.Format(_appSettings.BotSettings.MessageFaucetDrained, tweet.CreatedBy.Name);
             }
 
-            _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
-            _statService.AddStat(DateTime.UtcNow, _appSettings.BotSettings.AmountForTweet, true);
+            if (!CanMentionFriend(tweet, friend))
+            {
+                return string.Format(_appSettings.BotSettings.MessageFriendMentioned, friend.Name);
+            }
+
+            _withdrawalService.ExecuteAsync(rewardType, targetAddress).GetAwaiter().GetResult();
+            _statService.AddStat(DateTime.UtcNow, AmountHelper.GetAmount(_appSettings, rewardType), true);
 
             var reward = new Reward
             {
@@ -197,43 +227,63 @@ namespace XsgTwitterBot.Services.Impl
 
             _rewardCollection.Insert(reward);
 
-            return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName, _appSettings.BotSettings.AmountForTweet);
+            if (friend != null)
+            {
+                _friendTagMapCollection.Insert(new FriendTagMap
+                {
+                    Id = $"{tweet.CreatedBy.Id}@{friend.Id}"
+                });
+            }
+
+            return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName,
+                AmountHelper.GetAmount(_appSettings, rewardType));
         }
 
         private string HandleExistingUser(ITweet tweet, string targetAddress, Reward reward)
         {
-            var canWithdraw = _withdrawalService.CanExecuteAsync().GetAwaiter().GetResult();
+            var friend = GetFriendMentioned(tweet);
+            var rewardType = friend != null ? RewardType.FriendMention : RewardType.Tag;
+            
+            var canWithdraw = _withdrawalService.CanExecuteAsync(rewardType).GetAwaiter().GetResult();
             if (!canWithdraw)
             {
                 _logger.Warning("Not enough funds for withdrawal.");
                 return string.Format(_appSettings.BotSettings.MessageFaucetDrained, tweet.CreatedBy.ScreenName);
             }
 
-            string replyMessage;
             reward.Followers = tweet.CreatedBy.FollowersCount;
 
             if (reward.Withdrawals >= reward.Followers)
             {
-                replyMessage = string.Format(_appSettings.BotSettings.MessageReachedLimit, tweet.CreatedBy.ScreenName);
+                return string.Format(_appSettings.BotSettings.MessageReachedLimit, tweet.CreatedBy.ScreenName);
             }
-            else if (reward.LastRewardDate.Date.Equals(DateTime.UtcNow.Date))
+            
+            if (reward.LastRewardDate.Date.Equals(DateTime.UtcNow.Date))
             {
-                replyMessage = GenerateMessageDailyLimitReached(tweet.CreatedBy.ScreenName);
+                return  GenerateMessageDailyLimitReached(tweet.CreatedBy.ScreenName);
             }
-            else
+            
+            if (!CanMentionFriend(tweet, friend))
             {
-                replyMessage = string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName, _appSettings.BotSettings.AmountForTweet);
-
-                _withdrawalService.ExecuteAsync(targetAddress).GetAwaiter().GetResult();
-                _statService.AddStat(DateTime.UtcNow, _appSettings.BotSettings.AmountForTweet, false);
-
-                reward.LastRewardDate = DateTime.UtcNow;
-                reward.Withdrawals++;
+                return string.Format(_appSettings.BotSettings.MessageFriendMentioned, friend.ScreenName);
             }
 
+            _withdrawalService.ExecuteAsync(rewardType, targetAddress).GetAwaiter().GetResult();
+            _statService.AddStat(DateTime.UtcNow, AmountHelper.GetAmount(_appSettings, rewardType), false);
+
+            if (friend != null)
+            {
+                _friendTagMapCollection.Insert(new FriendTagMap
+                {
+                    Id = $"{tweet.CreatedBy.Id}@{friend.Id}"
+                });
+            }
+                
+            reward.LastRewardDate = DateTime.UtcNow;
+            reward.Withdrawals++;
             _rewardCollection.Update(reward);
-
-            return replyMessage;
+                
+            return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName, AmountHelper.GetAmount(_appSettings, rewardType));
         }
 
         private string GenerateMessageDailyLimitReached(string screenName)

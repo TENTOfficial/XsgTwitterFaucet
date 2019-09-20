@@ -15,11 +15,11 @@ namespace XsgTwitterBot.Services.Impl
             _nodeApi = nodeApi;
         }
 
-        public async Task<bool> CanExecuteAsync()
+        public async Task<bool> CanExecuteAsync(RewardType rewardType)
         {
             var response = await _nodeApi.GetInfoAsync();
-
-            if (response.Result.Balance > _appSettings.BotSettings.AmountForTweet)
+            
+            if (response.Result.Balance >  AmountHelper.GetAmount(_appSettings, rewardType))
             {
                 return true;
             }
@@ -33,9 +33,9 @@ namespace XsgTwitterBot.Services.Impl
             return response.Result.Balance;
         }
 
-        public async Task ExecuteAsync(string targetAddress)
+        public async Task ExecuteAsync(RewardType rewardType, string targetAddress)
         {
-            await _nodeApi.SendToAddressAsync(targetAddress, _appSettings.BotSettings.AmountForTweet);
+            await _nodeApi.SendToAddressAsync(targetAddress, AmountHelper.GetAmount(_appSettings, rewardType));
         }
     }
 }
