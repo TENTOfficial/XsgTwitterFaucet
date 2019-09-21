@@ -107,11 +107,6 @@ namespace XsgTwitterBot.Services.Impl
             return null;
         }
 
-        private bool CanMentionFriend(ITweet tweet, IUser friend)
-        {
-            return !_friendTagMapCollection.Exists(x => x.Id == $"{tweet.CreatedBy.Id}@{friend.Id}");
-        }
-
         private void ProcessTweets(List<ITweet> tweets)
         {
             foreach (var tweet in tweets)
@@ -209,11 +204,6 @@ namespace XsgTwitterBot.Services.Impl
                 return string.Format(_appSettings.BotSettings.MessageFaucetDrained, tweet.CreatedBy.Name);
             }
 
-            if (!CanMentionFriend(tweet, friend))
-            {
-                return string.Format(_appSettings.BotSettings.MessageFriendMentioned, friend.Name);
-            }
-
             _withdrawalService.ExecuteAsync(rewardType, targetAddress).GetAwaiter().GetResult();
             _statService.AddStat(DateTime.UtcNow, AmountHelper.GetAmount(_appSettings, rewardType), true);
 
@@ -263,11 +253,6 @@ namespace XsgTwitterBot.Services.Impl
                 return  GenerateMessageDailyLimitReached(tweet.CreatedBy.ScreenName);
             }
             
-            if (!CanMentionFriend(tweet, friend))
-            {
-                return string.Format(_appSettings.BotSettings.MessageFriendMentioned, friend.ScreenName);
-            }
-
             _withdrawalService.ExecuteAsync(rewardType, targetAddress).GetAwaiter().GetResult();
             _statService.AddStat(DateTime.UtcNow, AmountHelper.GetAmount(_appSettings, rewardType), false);
 
