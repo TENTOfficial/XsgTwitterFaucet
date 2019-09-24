@@ -119,6 +119,8 @@ namespace XsgTwitterBot.Services.Impl
                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                     if (string.IsNullOrWhiteSpace(targetAddress))
                     {
+                        _logger.Information("{targetAddress} for tweet ({Id}) is invalid", targetAddress, tweet.Id);
+                        
                         UpsertCursor(tweet.Id);
                         continue;
                     }
