@@ -67,12 +67,14 @@ namespace XsgTwitterBot.Services.Impl
                     if (cursor != null)
                     {
                         searchParameter.SinceId = cursor.TweetId;
-                        searchParameter.MaximumNumberOfResults = 25;
+                        searchParameter.MaximumNumberOfResults = 50;
                     }
                     else
                     {
                         searchParameter.MaximumNumberOfResults = 1;
                     }
+                    
+                    _logger.Information("Current cursor at {SinceId}", searchParameter.SinceId);
 
                     ProcessTweets(Search.SearchTweets(searchParameter).OrderBy(x => x.Id).ToList());
                 }
