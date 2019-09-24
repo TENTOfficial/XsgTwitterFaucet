@@ -59,22 +59,19 @@ namespace XsgTwitterBot.Services.Impl
                     
                     var searchParameter = new SearchTweetsParameters(query)
                     {
-                        TweetSearchType =  TweetSearchType.OriginalTweetsOnly,
-                        SearchType = SearchResultType.Recent,
-                        
+                        TweetSearchType =  TweetSearchType.All,
+                        SearchType = SearchResultType.Mixed
                     };
 
                     if (cursor != null)
                     {
                         searchParameter.SinceId = cursor.TweetId;
-                        searchParameter.MaximumNumberOfResults = 50;
+                        searchParameter.MaximumNumberOfResults = int.MaxValue;
                     }
                     else
                     {
                         searchParameter.MaximumNumberOfResults = 1;
                     }
-                    
-                    _logger.Information("Current cursor at {SinceId}", searchParameter.SinceId);
 
                     ProcessTweets(Search.SearchTweets(searchParameter).OrderBy(x => x.Id).ToList());
                 }
@@ -121,7 +118,7 @@ namespace XsgTwitterBot.Services.Impl
                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                     if (string.IsNullOrWhiteSpace(targetAddress))
                     {
-                        _logger.Information("{targetAddress} for tweet ({Id}) is invalid", targetAddress, tweet.Id);
+                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
                         
                         UpsertCursor(tweet.Id);
                         continue;
