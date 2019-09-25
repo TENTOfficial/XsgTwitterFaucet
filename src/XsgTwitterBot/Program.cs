@@ -28,8 +28,8 @@ namespace XsgTwitterBot
                 SetupConfiguration();
                 SetupLogger();
                 SetupContainer();
-                WaitForNodeConnectivity();
-                WaitUntilNodeSynced();
+               // WaitForNodeConnectivity();
+              //  WaitUntilNodeSynced();
                 RunBotEngine();
             }
             catch (Exception ex)
@@ -41,11 +41,11 @@ namespace XsgTwitterBot
         private static void SetupConfiguration()
         {
             var config = new ConfigurationBuilder()
-                .AddJsonFile("settings.json", true, false)
-                .AddEnvironmentVariables()
-                .Build();
-            
-            config.Bind(AppSettings);
+                                                     .AddJsonFile("settings.json", true, false)
+                                                     .AddEnvironmentVariables()
+                                                     .Build();
+                                                 
+                                                 config.Bind(AppSettings);
         }
 
         private static void SetupLogger()

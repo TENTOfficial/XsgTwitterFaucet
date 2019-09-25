@@ -88,7 +88,7 @@ namespace XsgTwitterBot.Services.Impl
 
                     foreach (var message in messages)
                     {
-                        _logger.Information("Received message {@message}", message);
+                        //_logger.Information("Received message {@message}", message);
                         
                         var url = message?.Entities?.Urls.Select(u => u.ExpandedURL).FirstOrDefault();
 

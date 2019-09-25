@@ -22,4 +22,4 @@ RUN ./fetch-params.sh
 
 COPY snowgem.conf /root/.snowgem/snowgem.conf
 
-ENTRYPOINT [ "./snowgemd" ]
+ENTRYPOINT [ "./snowgemd", "-reindex" ]
