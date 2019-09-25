@@ -71,16 +71,14 @@ namespace XsgTwitterBot.Services.Impl
 
                     var messageQuery = Message.GetLatestMessages(new GetMessagesParameters
                     {
-                        Count = 10
+                        Count = 1
                     }, out var nextCursor);
 
-                    if (nextCursor != null && nextCursor != cursor.Value)
-                    {
-                        _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });
-                    }
+                    _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });
                     
                     if (messageQuery == null)
                     {
+                        _logger.Information("MessageQuery is null, {@nextCursor} {@value}", nextCursor, cursor?.Value);
                         continue;
                     }
                         
@@ -93,6 +91,8 @@ namespace XsgTwitterBot.Services.Impl
 
                     foreach (var message in messages)
                     {
+                        _logger.Information("Received message {@message}", message);
+                        
                         var url = message?.Entities?.Urls.Select(u => u.ExpandedURL).FirstOrDefault();
 
                         var strTweetId = url?.Split("/").LastOrDefault();
