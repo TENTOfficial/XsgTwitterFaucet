@@ -68,17 +68,14 @@ namespace XsgTwitterBot.Services.Impl
                     {
                         getMessagesParameters.Cursor = cursor.Value;
                     }
-
-                    var messageQuery = Message.GetLatestMessages(new GetMessagesParameters
-                    {
-                        Count = 1
-                    }, out var nextCursor);
+                    
+                    var messageQuery = Message.GetLatestMessages(getMessagesParameters, out var nextCursor);
 
                     _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });
                     
                     if (messageQuery == null)
                     {
-                        _logger.Information("MessageQuery is null, {@nextCursor} {@value}", nextCursor, cursor?.Value);
+                        _logger.Information("MessageQuery is null");
                         continue;
                     }
                         
