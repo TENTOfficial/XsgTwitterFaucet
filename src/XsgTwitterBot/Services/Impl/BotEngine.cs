@@ -25,7 +25,7 @@ namespace XsgTwitterBot.Services.Impl
         private readonly LiteCollection<FriendTagMap> _friendTagMapCollection;
         private readonly LiteCollection<UserTweetMap> _userTweetMapCollection;
 
-        private string _cursorId = "messages";
+        private string _cursorId = "messageCursor";
         private readonly LiteCollection<Cursor> _cursor;
 
         public BotEngine(AppSettings appSettings,
@@ -71,11 +71,14 @@ namespace XsgTwitterBot.Services.Impl
                     
                     var messageQuery = Message.GetLatestMessages(getMessagesParameters, out var nextCursor);
 
-                    _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });
+                    if (nextCursor != null)
+                    {
+                        _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });    
+                    }
                     
                     if (messageQuery == null)
                     {
-                        _logger.Information("MessageQuery is null");
+                        _logger.Information("MessageQuery is null, {}");
                         continue;
                     }
                         
