@@ -95,6 +95,14 @@ namespace XsgTwitterBot.Services.Impl
                                     
                                     _logger.Information("Received tweet ({Id}) '{Text}' from {Name} ", tweet.Id, tweet.FullText, tweet.CreatedBy.Name);
 
+                                    var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
+                                    if (isProcessed != null)
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Given tweet has been already processed.", tweet.CreatedBy.Id);
+                                        continue;
+                                    }
+                                    
                                     // tweet can not be a reply
                                     if (!string.IsNullOrWhiteSpace(tweet.InReplyToScreenName))
                                     {
