@@ -23,8 +23,9 @@ namespace XsgTwitterBot.Services.Impl
         private readonly IStatService _statService;
         private readonly LiteCollection<Reward> _rewardCollection;
         private readonly LiteCollection<FriendTagMap> _friendTagMapCollection;
+        private readonly LiteCollection<UserTweetMap> _userTweetMapCollection;
 
-        private string _cursorId = "current";
+        private string _cursorId = "messages";
         private readonly LiteCollection<Cursor> _cursor;
 
         public BotEngine(AppSettings appSettings,
@@ -33,6 +34,7 @@ namespace XsgTwitterBot.Services.Impl
             IStatService statService,
             LiteCollection<Reward> rewardCollection, 
             LiteCollection<FriendTagMap> friendTagMapCollection,
+            LiteCollection<UserTweetMap> userTweetMapCollection,
             LiteCollection<Cursor> cursor)
         {
             _appSettings = appSettings;
@@ -41,6 +43,7 @@ namespace XsgTwitterBot.Services.Impl
             _statService = statService;
             _rewardCollection = rewardCollection;
             _friendTagMapCollection = friendTagMapCollection;
+            _userTweetMapCollection = userTweetMapCollection;
             _cursor = cursor;
         }
         
@@ -54,26 +57,119 @@ namespace XsgTwitterBot.Services.Impl
             {
                 try
                 {
-                    var query = string.Join(" ", _appSettings.BotSettings.TrackKeywords);
                     var cursor = _cursor.FindById(_cursorId);
-                    
-                    var searchParameter = new SearchTweetsParameters(query)
-                    {
-                        TweetSearchType =  TweetSearchType.All,
-                        SearchType = SearchResultType.Recent
-                    };
 
+                    var getMessagesParameters = new GetMessagesParameters
+                    {
+                        Count = 1
+                    };
+                    
                     if (cursor != null)
                     {
-                        searchParameter.SinceId = cursor.TweetId;
-                        searchParameter.MaximumNumberOfResults = int.MaxValue;
-                    }
-                    else
-                    {
-                        searchParameter.MaximumNumberOfResults = 1;
+                        getMessagesParameters.Cursor = cursor.Value;
                     }
 
-                    ProcessTweets(Search.SearchTweets(searchParameter).OrderBy(x => x.Id).ToList());
+                    var urls = Message.GetLatestMessages(new GetMessagesParameters
+                        {
+                            Count = 10
+                        }, out var nextCursor)
+                        .Where(x => x.Entities.Urls.Any())
+                        .SelectMany(x => x.Entities.Urls, (message, entity) => entity.ExpandedURL)
+                        .ToList();
+
+                    if (nextCursor != null && nextCursor != cursor.Value)
+                    {
+                        _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });
+                    }
+
+                    foreach (var url in urls)
+                    {
+                        var strTweetId = url.Split("/").LastOrDefault();
+                        if (strTweetId != null)
+                        {
+                            if(long.TryParse(strTweetId, out var tweetId))
+                            {
+                                try
+                                {
+                                    var tweet = Tweet.GetTweet(tweetId);
+                                    
+                                    _logger.Information("Received tweet ({Id}) '{Text}' from {Name} ", tweet.Id, tweet.FullText, tweet.CreatedBy.Name);
+
+                                    // tweet can not be a reply
+                                    if (!string.IsNullOrWhiteSpace(tweet.InReplyToScreenName))
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - replies are not supported.", tweet.CreatedBy.Id);
+                                        continue;
+                                    }
+
+                                    // tweet must contain hashtags
+                                    var requiredHashTags = string.Join(" ", _appSettings.BotSettings.TrackKeywords);
+                                    var hasValidHashTags = tweet.Hashtags.Select(x => x.Text).All(x => requiredHashTags.Contains(x));
+                                    if(!hasValidHashTags)
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Tweet should contain the following hashtags: {_appSettings.BotSettings.TrackKeywords}", tweet.CreatedBy.Id);
+                                        continue;
+                                    }
+                                    
+                                    // tweet must contain valid xsg address
+                                    var text = Regex.Replace(tweet.FullText, @"\r\n?|\n", " ");
+                                    var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
+                                    if (string.IsNullOrWhiteSpace(targetAddress))
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Tweet should contain valid xsg transparent address", tweet.CreatedBy.Id);
+                                        continue;
+                                    }
+
+                                    // user can not be a scammer
+                                    var isUserLegit = ValidateUser(tweet.CreatedBy);
+                                    if (!isUserLegit)
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Is your account a fake one? You you have to little followers.", tweet.CreatedBy.Id);
+                                        continue;
+                                    }
+                                    
+                                    // tweet can not be too short
+                                    var isTweetTextValid = ValidateTweetText(tweet.Text);
+                                    if (!isTweetTextValid)
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Your tweet is too short", tweet.CreatedBy.Id);
+                                        continue;
+                                    }
+
+                                    // --- processing payout
+                                    var rewardType = GetRewardType(tweet);
+                                    var reward = _rewardCollection.FindOne(x => x.Id == tweet.CreatedBy.Id);
+                                    var replyMessage = reward != null
+                                        ? HandleExistingUser(tweet, targetAddress, reward, rewardType)
+                                        : HandleNewUser(tweet, targetAddress, rewardType);
+
+                                    _userTweetMapCollection.Insert(new UserTweetMap
+                                    {
+                                        Id = $"{tweet.CreatedBy.Id}@{tweet.Id}"
+                                    });
+                                    
+                                    Tweet.PublishTweet(replyMessage, new PublishTweetOptionalParameters
+                                    {
+                                        InReplyToTweet = tweet
+                                    });
+                                    
+                                    Message.PublishMessage($"Response to tweet ({tweet.Id}) - Reward of {reward} XSG has been sent.", tweet.CreatedBy.Id);
+
+                                    _logger.Information("Replied with message '{ReplyMessage}'", replyMessage);
+                                    _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
+                                }
+                                catch(Exception exception)
+                                {
+                                    _logger.Error(exception, "Processing tweet messages failed");
+                                }
+                            }
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -105,73 +201,8 @@ namespace XsgTwitterBot.Services.Impl
 
             return null;
         }
-
-        private void ProcessTweets(List<ITweet> tweets)
-        {
-            foreach (var tweet in tweets)
-            {
-                 _logger.Information("Received tweet ({Id}) '{Text}' from {Name} ", tweet.Id, tweet.FullText, tweet.CreatedBy.Name);
-                
-                if (string.IsNullOrWhiteSpace(tweet.InReplyToScreenName))
-                {
-                    var text = Regex.Replace(tweet.FullText, @"\r\n?|\n", " ");
-                    var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
-                    if (string.IsNullOrWhiteSpace(targetAddress))
-                    {
-                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
-                        
-                        UpsertCursor(tweet.Id);
-                        continue;
-                    }
-                        
-                    var isUserLegit = ValidateUser(tweet.CreatedBy);
-                    if (!isUserLegit)
-                    {
-                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
-                        UpsertCursor(tweet.Id);
-                        continue;
-                    }
-
-                    var isTweetTextValid = ValidateTweetText(tweet.Text);
-                    if (!isTweetTextValid)
-                    {
-                        _logger.Information("Tweet is invalid");
-                        Tweet.PublishTweet(string.Format(_appSettings.BotSettings.MessageTweetInvalid, tweet.CreatedBy.ScreenName, _appSettings.BotSettings.MinTweetLenght) , new PublishTweetOptionalParameters
-                        {
-                            InReplyToTweet = tweet
-                        });
-                        
-                        UpsertCursor(tweet.Id);
-                        continue;
-                    }
-                    
-                    var reward = _rewardCollection.FindOne(x => x.Id == tweet.CreatedBy.Id);
-                    var replyMessage = reward != null ? HandleExistingUser(tweet, targetAddress, reward) : HandleNewUser(tweet, targetAddress);
-
-                    _logger.Information("Replied with message '{ReplyMessage}'", replyMessage);
-
-                    Tweet.PublishTweet(replyMessage, new PublishTweetOptionalParameters
-                    {
-                        InReplyToTweet = tweet
-                    });
-
-                    _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
-                }
-                else
-                {
-                    _logger.Information("Received tweet does not match required criteria.");
-                }
-
-                UpsertCursor(tweet.Id);
-            }
-        }
-
-        private void UpsertCursor(long tweetId)
-        {
-            _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, TweetId = tweetId, UpdateAt = DateTime.UtcNow});
-        }
-        
-         private bool ValidateUser(IUser user)
+       
+        private bool ValidateUser(IUser user)
         {
             if (user.FriendsCount >= user.FollowersCount && user.FriendsCount > 10)
             {
@@ -193,11 +224,24 @@ namespace XsgTwitterBot.Services.Impl
             return text.Length >= _appSettings.BotSettings.MinTweetLenght;
         }
 
-        private string HandleNewUser(ITweet tweet, string targetAddress)
+        private RewardType GetRewardType(ITweet tweet)
         {
             var friend = GetFriendMentioned(tweet);
             var rewardType = friend != null ? RewardType.FriendMention : RewardType.Tag;
+            
+            if (friend != null)
+            {
+                _friendTagMapCollection.Insert(new FriendTagMap
+                {
+                    Id = $"{tweet.CreatedBy.Id}@{friend.Id}"
+                });
+            }
 
+            return rewardType;
+        }
+        
+        private string HandleNewUser(ITweet tweet, string targetAddress, RewardType rewardType)
+        {
             var canWithdraw = _withdrawalService.CanExecuteAsync(rewardType).GetAwaiter().GetResult();
             if (!canWithdraw)
             {
@@ -217,24 +261,13 @@ namespace XsgTwitterBot.Services.Impl
             };
 
             _rewardCollection.Insert(reward);
-
-            if (friend != null)
-            {
-                _friendTagMapCollection.Insert(new FriendTagMap
-                {
-                    Id = $"{tweet.CreatedBy.Id}@{friend.Id}"
-                });
-            }
-
+ 
             return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName,
                 AmountHelper.GetAmount(_appSettings, rewardType));
         }
 
-        private string HandleExistingUser(ITweet tweet, string targetAddress, Reward reward)
+        private string HandleExistingUser(ITweet tweet, string targetAddress, Reward reward, RewardType rewardType)
         {
-            var friend = GetFriendMentioned(tweet);
-            var rewardType = friend != null ? RewardType.FriendMention : RewardType.Tag;
-            
             var canWithdraw = _withdrawalService.CanExecuteAsync(rewardType).GetAwaiter().GetResult();
             if (!canWithdraw)
             {
@@ -257,14 +290,6 @@ namespace XsgTwitterBot.Services.Impl
             _withdrawalService.ExecuteAsync(rewardType, targetAddress).GetAwaiter().GetResult();
             _statService.AddStat(DateTime.UtcNow, AmountHelper.GetAmount(_appSettings, rewardType), false);
 
-            if (friend != null)
-            {
-                _friendTagMapCollection.Insert(new FriendTagMap
-                {
-                    Id = $"{tweet.CreatedBy.Id}@{friend.Id}"
-                });
-            }
-                
             reward.LastRewardDate = DateTime.UtcNow;
             reward.Withdrawals++;
             _rewardCollection.Update(reward);

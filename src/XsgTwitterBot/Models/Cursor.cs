@@ -6,7 +6,6 @@ namespace XsgTwitterBot.Models
     {
         public string Id { get; set; }
         
-        public long TweetId { get; set; } 
-        public DateTime UpdateAt { get; set; }
+        public string Value { get; set; } 
     }
 }

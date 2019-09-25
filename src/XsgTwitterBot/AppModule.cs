@@ -22,6 +22,8 @@ namespace XsgTwitterBot
             var dbPath = Path.Combine("db", "data.db");
             builder.Register(container => new LiteDatabase(dbPath)).SingleInstance();
             
+            
+            builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<UserTweetMap>("userTweetMap")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<FriendTagMap>("friendMap")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Reward>("rewards")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Cursor>("cursor")).SingleInstance();

@@ -14,4 +14,12 @@ namespace XsgTwitterBot.Models
     {
         public string Id { get; set; }
     }
+    
+    public class UserTweetMap
+    {
+        public string Id { get; set; }
+    }
+    
+    
+    
 }
