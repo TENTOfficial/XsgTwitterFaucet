@@ -68,23 +68,22 @@ namespace XsgTwitterBot.Services.Impl
                     {
                         getMessagesParameters.Cursor = cursor.Value;
                     }
-
-                    var urls = Message.GetLatestMessages(new GetMessagesParameters
+ 
+                    var messages = Message.GetLatestMessages(new GetMessagesParameters
                         {
                             Count = 10
-                        }, out var nextCursor)
-                        .Where(x => x.Entities.Urls.Any())
-                        .SelectMany(x => x.Entities.Urls, (message, entity) => entity.ExpandedURL)
-                        .ToList();
+                        }, out var nextCursor).ToList();
 
                     if (nextCursor != null && nextCursor != cursor.Value)
                     {
                         _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });
                     }
 
-                    foreach (var url in urls)
+                    foreach (var message in messages)
                     {
-                        var strTweetId = url.Split("/").LastOrDefault();
+                        var url = message?.Entities?.Urls.Select(u => u.ExpandedURL).FirstOrDefault();
+
+                        var strTweetId = url?.Split("/").LastOrDefault();
                         if (strTweetId != null)
                         {
                             if(long.TryParse(strTweetId, out var tweetId))
