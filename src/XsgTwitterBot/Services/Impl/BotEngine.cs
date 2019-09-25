@@ -69,6 +69,7 @@ namespace XsgTwitterBot.Services.Impl
                         getMessagesParameters.Cursor = cursor.Value;
                     }
  
+                    
                     var messages = Message.GetLatestMessages(new GetMessagesParameters
                         {
                             Count = 10
