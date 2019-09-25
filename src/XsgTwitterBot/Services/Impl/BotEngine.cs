@@ -60,7 +60,7 @@ namespace XsgTwitterBot.Services.Impl
                     var searchParameter = new SearchTweetsParameters(query)
                     {
                         TweetSearchType =  TweetSearchType.All,
-                        SearchType = SearchResultType.Mixed
+                        SearchType = SearchResultType.Recent
                     };
 
                     if (cursor != null)
@@ -73,8 +73,6 @@ namespace XsgTwitterBot.Services.Impl
                         searchParameter.MaximumNumberOfResults = 1;
                     }
 
-                    _logger.Information("Current cursor at {Id}", searchParameter.SinceId);
-                        
                     ProcessTweets(Search.SearchTweets(searchParameter).OrderBy(x => x.Id).ToList());
                 }
                 catch (Exception ex)
