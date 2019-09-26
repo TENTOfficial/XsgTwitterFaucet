@@ -61,7 +61,7 @@ namespace XsgTwitterBot.Services.Impl
 
                     var getMessagesParameters = new GetMessagesParameters
                     {
-                        Count = 50
+                        Count = 5
                     };
                     
                     if (cursor != null)
@@ -71,9 +71,11 @@ namespace XsgTwitterBot.Services.Impl
                     
                     var messageQuery = Message.GetLatestMessages(getMessagesParameters, out var nextCursor);
 
+                    _logger.Information("Next cursor is {cursor}", nextCursor);
                     if (nextCursor != null)
                     {
                         _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });    
+                        _logger.Information("Cursor updated");
                     }
                     
                     if (messageQuery == null)
@@ -85,10 +87,6 @@ namespace XsgTwitterBot.Services.Impl
                         
                     var messages = messageQuery.ToList();
 
-                    if (nextCursor != null && nextCursor != cursor.Value)
-                    {
-                        _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });
-                    }
 
                     foreach (var message in messages)
                     {
