@@ -66,17 +66,12 @@ namespace XsgTwitterBot.Services.Impl
                     
                     if (cursor != null)
                     {
+                        _logger.Information("Current cursor is {cursor}", cursor.Value);
                         getMessagesParameters.Cursor = cursor.Value;
                     }
                     
                     var messageQuery = Message.GetLatestMessages(getMessagesParameters, out var nextCursor);
-
                     _logger.Information("Next cursor is {cursor}", nextCursor);
-                    if (nextCursor != null)
-                    {
-                        _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });    
-                        _logger.Information("Cursor updated");
-                    }
                     
                     if (messageQuery == null)
                     {
@@ -84,9 +79,14 @@ namespace XsgTwitterBot.Services.Impl
                         CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency * 3);
                         continue;
                     }
-                        
+                    
+                    if (nextCursor != null)
+                    {
+                        _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });    
+                        _logger.Information("Cursor updated {cursor}", nextCursor);
+                    }
+                    
                     var messages = messageQuery.ToList();
-
 
                     foreach (var message in messages)
                     {
