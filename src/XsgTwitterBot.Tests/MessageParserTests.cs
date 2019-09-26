@@ -55,13 +55,25 @@ namespace XsgTwitterBot.Tests
 
            // var user = User.GetUserFromScreenName("@aph5nt");
 
-           var messageQuery = Message.GetLatestMessages(new GetMessagesParameters
+           var messages = Message.GetLatestMessages(new GetMessagesParameters()
            {
-               Count = 1,
-               Cursor = "MTE3NjkzNDU4NDk3OTczNDUzMw"
+               Count = 50
            }, out var nextCursor).ToList();
+
+           if (nextCursor != null) 
+           {
+               var olderMessages = Message.GetLatestMessages(new GetMessagesParameters()
+               {
+                   Count = 50,
+                   Cursor = nextCursor
+               });
+
+               messages.AddRange(olderMessages);
+           }
+           
+          
             
-            var response = Message.PublishMessage($"No problem, here ishkhkhj the reply!", 2858559033);
+           /// var response = Message.PublishMessage($"No problem, here ishkhkhj the reply!", 2858559033);
              
          //   
             

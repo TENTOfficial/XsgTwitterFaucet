@@ -28,8 +28,8 @@ namespace XsgTwitterBot
                 SetupConfiguration();
                 SetupLogger();
                 SetupContainer();
-               // WaitForNodeConnectivity();
-              //  WaitUntilNodeSynced();
+                WaitForNodeConnectivity();
+                WaitUntilNodeSynced();
                 RunBotEngine();
             }
             catch (Exception ex)

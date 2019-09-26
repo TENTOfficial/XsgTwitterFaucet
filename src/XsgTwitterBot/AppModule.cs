@@ -26,7 +26,6 @@ namespace XsgTwitterBot
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<UserTweetMap>("userTweetMap")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<FriendTagMap>("friendMap")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Reward>("rewards")).SingleInstance();
-            builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Cursor>("cursor")).SingleInstance();
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<Stat>("stats")).SingleInstance();
             builder.RegisterType<BotEngine>().InstancePerDependency();
         }

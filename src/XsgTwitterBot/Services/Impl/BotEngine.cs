@@ -25,17 +25,13 @@ namespace XsgTwitterBot.Services.Impl
         private readonly LiteCollection<FriendTagMap> _friendTagMapCollection;
         private readonly LiteCollection<UserTweetMap> _userTweetMapCollection;
 
-        private string _cursorId = "messageCursor";
-        private readonly LiteCollection<Cursor> _cursor;
-
         public BotEngine(AppSettings appSettings,
             IMessageParser messageParser, 
             IWithdrawalService withdrawalService,
             IStatService statService,
             LiteCollection<Reward> rewardCollection, 
             LiteCollection<FriendTagMap> friendTagMapCollection,
-            LiteCollection<UserTweetMap> userTweetMapCollection,
-            LiteCollection<Cursor> cursor)
+            LiteCollection<UserTweetMap> userTweetMapCollection)
         {
             _appSettings = appSettings;
             _messageParser = messageParser;
@@ -44,7 +40,6 @@ namespace XsgTwitterBot.Services.Impl
             _rewardCollection = rewardCollection;
             _friendTagMapCollection = friendTagMapCollection;
             _userTweetMapCollection = userTweetMapCollection;
-            _cursor = cursor;
         }
         
         protected override void RunLoop()
@@ -57,42 +52,25 @@ namespace XsgTwitterBot.Services.Impl
             {
                 try
                 {
-                    var cursor = _cursor.FindById(_cursorId);
+                    var messages = Message.GetLatestMessages(new GetMessagesParameters()
+                    {
+                        Count = 50
+                    }).ToList();//, out var nextCursor).ToList();
 
-                    var getMessagesParameters = new GetMessagesParameters
+                    /*
+                    if (nextCursor != null) 
                     {
-                        Count = 1
-                    };
-                    
-                    if (cursor != null)
-                    {
-                        _logger.Information("Current cursor is {cursor}", cursor.Value);
-                        getMessagesParameters.Cursor = cursor.Value;
-                    }
-                    
-                    _logger.Information("Executing GetLatestMessages with params: {@getMessagesParameters}", getMessagesParameters);
-                    var messageQuery = Message.GetLatestMessages(getMessagesParameters, out var nextCursor);
-                    _logger.Information("Next cursor is {cursor}", nextCursor);
-                    
-                    if (messageQuery == null)
-                    {
-                        _logger.Information("Rate limit reached, going to sleep");
-                        CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency * 6);
-                        continue;
-                    }
-                    
-                    if (!string.IsNullOrEmpty(nextCursor))
-                    {
-                        _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });    
-                        _logger.Information("Cursor updated {cursor}", nextCursor);
-                    }
-                    
-                    var messages = messageQuery.ToList();
+                        var olderMessages = Message.GetLatestMessages(new GetMessagesParameters()
+                        {
+                            Count = 50,
+                            Cursor = nextCursor
+                        });
+
+                        messages.AddRange(olderMessages);
+                    }*/
 
                     foreach (var message in messages)
                     {
-                        //_logger.Information("Received message {@message}", message);
-                        
                         var url = message?.Entities?.Urls.Select(u => u.ExpandedURL).FirstOrDefault();
 
                         var strTweetId = url?.Split("/").LastOrDefault();
@@ -107,7 +85,6 @@ namespace XsgTwitterBot.Services.Impl
                                     var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
                                     if (isProcessed != null)
                                     {
-                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
                                         continue;
                                     }
                                     
