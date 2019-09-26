@@ -77,7 +77,7 @@ namespace XsgTwitterBot.Services.Impl
                     if (messageQuery == null)
                     {
                         _logger.Information("Rate limit reached, going to sleep");
-                        CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency * 3);
+                        CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency * 6);
                         continue;
                     }
                     

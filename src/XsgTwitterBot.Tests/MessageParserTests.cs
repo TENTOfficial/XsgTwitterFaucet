@@ -57,9 +57,9 @@ namespace XsgTwitterBot.Tests
 
            var messageQuery = Message.GetLatestMessages(new GetMessagesParameters
            {
-               Count = 100,
-               Cursor = "MTE3NjkzNTc5MzQxMzI1MTA3Ng"
-           }, out var nextCursor);
+               Count = 1,
+               Cursor = "MTE3NjkzNDU4NDk3OTczNDUzMw"
+           }, out var nextCursor).ToList();
             
             var response = Message.PublishMessage($"No problem, here ishkhkhj the reply!", 2858559033);
              
