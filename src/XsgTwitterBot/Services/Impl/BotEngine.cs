@@ -70,6 +70,7 @@ namespace XsgTwitterBot.Services.Impl
                         getMessagesParameters.Cursor = cursor.Value;
                     }
                     
+                    _logger.Information("Executing GetLatestMessages with params: {@getMessagesParameters}", getMessagesParameters);
                     var messageQuery = Message.GetLatestMessages(getMessagesParameters, out var nextCursor);
                     _logger.Information("Next cursor is {cursor}", nextCursor);
                     
@@ -80,7 +81,7 @@ namespace XsgTwitterBot.Services.Impl
                         continue;
                     }
                     
-                    if (nextCursor != null)
+                    if (!string.IsNullOrEmpty(nextCursor))
                     {
                         _cursor.Upsert(_cursorId, new Cursor { Id = _cursorId, Value = nextCursor });    
                         _logger.Information("Cursor updated {cursor}", nextCursor);
