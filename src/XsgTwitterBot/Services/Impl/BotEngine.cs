@@ -55,7 +55,8 @@ namespace XsgTwitterBot.Services.Impl
                 _logger.Information($"Following {args.Target.ScreenName}");
                 
             };
-            stream.StartStreamAsync();
+            
+            stream.StartStream();
             
             while (!CancellationTokenSource.Token.IsCancellationRequested)
             {
@@ -76,7 +77,7 @@ namespace XsgTwitterBot.Services.Impl
                         var strTweetId = url?.Split("/").LastOrDefault();
                         if (strTweetId != null)
                         {
-                            if(long.TryParse(strTweetId, out var tweetId))
+                            if (long.TryParse(strTweetId, out var tweetId))
                             {
                                 try
                                 {
@@ -85,6 +86,8 @@ namespace XsgTwitterBot.Services.Impl
                                     var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
                                     if (isProcessed != null)
                                     {
+                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - your tweet has been processed already.", tweet.CreatedBy.Id);
                                         continue;
                                     }
                                     
