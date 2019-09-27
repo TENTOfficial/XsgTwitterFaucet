@@ -115,13 +115,13 @@ namespace XsgTwitterBot.Services.Impl
                                     }
 
                                     // user can not be a scammer
-                                    var isUserLegit = ValidateUser(tweet.CreatedBy);
-                                    if (!isUserLegit)
-                                    {
-                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
-                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Is your account a fake one? You you have to little followers.", tweet.CreatedBy.Id);
-                                        continue;
-                                    }
+                                    //var isUserLegit = ValidateUser(tweet.CreatedBy);
+                                    //if (!isUserLegit)
+                                    //{
+//                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+//                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Is your account a fake one? You you have to little followers.", tweet.CreatedBy.Id);
+//                                        continue;
+//                                    }
                                     
                                     // tweet can not be too short
                                     var isTweetTextValid = ValidateTweetText(tweet.Text);
