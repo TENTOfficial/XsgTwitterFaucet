@@ -48,6 +48,15 @@ namespace XsgTwitterBot.Services.Impl
 
             SetUserCredentials();
             
+            var stream = Stream.CreateUserStream();
+            stream.FollowedByUser += (sender, args) =>
+            {
+                User.FollowUser(args.Target);
+                _logger.Information($"Following {args.Target.ScreenName}");
+                
+            };
+            stream.StartStream();
+            
             while (!CancellationTokenSource.Token.IsCancellationRequested)
             {
                 try
