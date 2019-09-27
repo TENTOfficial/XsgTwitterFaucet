@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using LiteDB;
 using Serilog;
 using Tweetinvi;
+using Tweetinvi.Core.Extensions;
 using Tweetinvi.Logic.Model;
 using Tweetinvi.Models;
 using Tweetinvi.Parameters;
@@ -46,22 +47,16 @@ namespace XsgTwitterBot.Services.Impl
         {
             var sleepMultiplier = 1;
 
-            var credentials = SetUserCredentials();
-            
-            var stream = Stream.CreateUserStream(credentials);
-            stream.FollowedByUser += (sender, args) =>
-            {
-                User.FollowUser(args.Target);
-                _logger.Information($"Following back {args.Target.ScreenName}");
-                
-            };
-            
-            stream.StartStream();
+            SetUserCredentials();
             
             while (!CancellationTokenSource.Token.IsCancellationRequested)
             {
                 try
                 {
+                    var folowerIds = User.GetFollowerIds("GiveawayXsg").ToList();
+                    var friendIds = User.GetFriendIds("GiveawayXsg").ToList();
+                    folowerIds.Except(friendIds).ForEach(u => User.FollowUser(u));
+                   
                     var messages = Message.GetLatestMessages(new GetMessagesParameters()
                     {
                         Count = 50
