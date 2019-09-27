@@ -46,13 +46,13 @@ namespace XsgTwitterBot.Services.Impl
         {
             var sleepMultiplier = 1;
 
-            SetUserCredentials();
+            var credentials = SetUserCredentials();
             
-            var stream = Stream.CreateUserStream();
+            var stream = Stream.CreateUserStream(credentials);
             stream.FollowedByUser += (sender, args) =>
             {
                 User.FollowUser(args.Target);
-                _logger.Information($"Following {args.Target.ScreenName}");
+                _logger.Information($"Following back {args.Target.ScreenName}");
                 
             };
             
@@ -316,9 +316,9 @@ namespace XsgTwitterBot.Services.Impl
             return string.Format(_appSettings.BotSettings.MessageDailyLimitReached, screenName, tryAgainIn);
         }
 
-        private void SetUserCredentials()
+        private ITwitterCredentials SetUserCredentials()
         {
-            Auth.SetUserCredentials(
+            return Auth.SetUserCredentials(
                 _appSettings.TwitterSettings.ConsumerKey,
                 _appSettings.TwitterSettings.ConsumerSecret,
                 _appSettings.TwitterSettings.AccessToken,
