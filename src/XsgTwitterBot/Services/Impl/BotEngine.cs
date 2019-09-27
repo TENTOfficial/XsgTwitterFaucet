@@ -55,7 +55,7 @@ namespace XsgTwitterBot.Services.Impl
                 _logger.Information($"Following {args.Target.ScreenName}");
                 
             };
-            stream.StartStream();
+            stream.StartStreamAsync();
             
             while (!CancellationTokenSource.Token.IsCancellationRequested)
             {
@@ -153,7 +153,7 @@ namespace XsgTwitterBot.Services.Impl
                                         InReplyToTweet = tweet
                                     });
                                     
-                                    Message.PublishMessage($"Response to tweet ({tweet.Id}) - Reward of {AmountHelper.GetAmount(_appSettings, rewardType)} XSG has been sent.", tweet.CreatedBy.Id);
+                                    Message.PublishMessage($"Response to tweet ({tweet.Id}) - {replyMessage}", tweet.CreatedBy.Id);
 
                                     _logger.Information("Replied with message '{ReplyMessage}'", replyMessage);
                                     _logger.Information("Faucet balance: {balance} XSG", _withdrawalService.GetBalanceAsync().GetAwaiter().GetResult());
