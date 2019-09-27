@@ -55,19 +55,10 @@ namespace XsgTwitterBot.Services.Impl
                     var messages = Message.GetLatestMessages(new GetMessagesParameters()
                     {
                         Count = 50
-                    }).ToList();//, out var nextCursor).ToList();
-
-                    /*
-                    if (nextCursor != null) 
-                    {
-                        var olderMessages = Message.GetLatestMessages(new GetMessagesParameters()
-                        {
-                            Count = 50,
-                            Cursor = nextCursor
-                        });
-
-                        messages.AddRange(olderMessages);
-                    }*/
+                    });
+                    
+                    if(messages == null)
+                        continue;
 
                     foreach (var message in messages)
                     {
