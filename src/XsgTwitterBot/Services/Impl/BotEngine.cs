@@ -75,11 +75,14 @@ namespace XsgTwitterBot.Services.Impl
                         continue;
                     }
 
-                    _messageCursorCollection.Upsert("current", new MessageCursor
+                    if (messages.Count > 0)
                     {
-                        Id = "current",
-                        Value = messages.Count > 0 ? messages.Max(x => x.Id) : 0
-                    });
+                        _messageCursorCollection.Upsert("current", new MessageCursor
+                        {
+                            Id = "current",
+                            Value = messages.Count > 0 ? messages.Max(x => x.Id) : 0
+                        });
+                    }
                     
                     foreach (var message in messages)
                     {
