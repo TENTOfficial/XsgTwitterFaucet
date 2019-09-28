@@ -118,12 +118,12 @@ namespace XsgTwitterBot.Services.Impl
                                     }
 
                                     // tweet must contain hashtags
-                                    var requiredHashTags = string.Join(" ", _appSettings.BotSettings.TrackKeywords);
-                                    var hasValidHashTags = tweet.Hashtags.Select(x => x.Text).All(x => requiredHashTags.Contains(x));
+                                    var requiredHashTags = _appSettings.BotSettings.TrackKeywords;
+                                    var hasValidHashTags = requiredHashTags.All(h => tweet.Hashtags.Select(x => x.Text).Contains(h));
                                     if(!hasValidHashTags)
                                     {
                                         _logger.Information("Ignoring tweet from user {@User} - weet should contain the following hashtags", tweet.CreatedBy);
-                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Tweet should contain the following hashtags: {_appSettings.BotSettings.TrackKeywords}", tweet.CreatedBy.Id);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Tweet should contain the following hashtags: {String.Join(" ", _appSettings.BotSettings.TrackKeywords)}", tweet.CreatedBy.Id);
                                         continue;
                                     }
                                     
