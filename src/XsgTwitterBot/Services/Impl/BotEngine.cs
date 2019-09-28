@@ -57,13 +57,18 @@ namespace XsgTwitterBot.Services.Impl
                     var friendIds = User.GetFriendIds("GiveawayXsg").ToList();
                     folowerIds.Except(friendIds).ForEach(u => User.FollowUser(u));
                    
-                    var messages = Message.GetLatestMessages(new GetMessagesParameters()
+                    var messages = Message.GetLatestMessages(new GetMessagesParameters
                     {
                         Count = 50
                     });
-                    
-                    if(messages == null)
+
+                    if (messages == null)
+                    {
+                        _logger.Information("Rate limit reached.");
+                        CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency * 5);
                         continue;
+                    }
+                        
 
                     foreach (var message in messages)
                     {
