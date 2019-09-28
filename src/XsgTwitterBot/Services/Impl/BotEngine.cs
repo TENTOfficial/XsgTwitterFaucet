@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using LiteDB;
@@ -25,6 +26,7 @@ namespace XsgTwitterBot.Services.Impl
         private readonly LiteCollection<Reward> _rewardCollection;
         private readonly LiteCollection<FriendTagMap> _friendTagMapCollection;
         private readonly LiteCollection<UserTweetMap> _userTweetMapCollection;
+        private readonly LiteCollection<MessageCursor> _messageCursorCollection;
 
         public BotEngine(AppSettings appSettings,
             IMessageParser messageParser, 
@@ -32,7 +34,8 @@ namespace XsgTwitterBot.Services.Impl
             IStatService statService,
             LiteCollection<Reward> rewardCollection, 
             LiteCollection<FriendTagMap> friendTagMapCollection,
-            LiteCollection<UserTweetMap> userTweetMapCollection)
+            LiteCollection<UserTweetMap> userTweetMapCollection,
+            LiteCollection<MessageCursor> messageCursorCollection)
         {
             _appSettings = appSettings;
             _messageParser = messageParser;
@@ -41,6 +44,7 @@ namespace XsgTwitterBot.Services.Impl
             _rewardCollection = rewardCollection;
             _friendTagMapCollection = friendTagMapCollection;
             _userTweetMapCollection = userTweetMapCollection;
+            _messageCursorCollection = messageCursorCollection;
         }
         
         protected override void RunLoop()
@@ -53,6 +57,8 @@ namespace XsgTwitterBot.Services.Impl
             {
                 try
                 {
+                    long? lastMessageId = _messageCursorCollection.FindById("current")?.Value;
+                    
                     var folowerIds = User.GetFollowerIds("GiveawayXsg").ToList();
                     var friendIds = User.GetFriendIds("GiveawayXsg").ToList();
                     folowerIds.Except(friendIds).ForEach(u => User.FollowUser(u));
@@ -60,7 +66,7 @@ namespace XsgTwitterBot.Services.Impl
                     var messages = Message.GetLatestMessages(new GetMessagesParameters
                     {
                         Count = 50
-                    });
+                    })?.Where(x => x.Id > lastMessageId.GetValueOrDefault(0)).ToList();
 
                     if (messages == null)
                     {
@@ -68,8 +74,13 @@ namespace XsgTwitterBot.Services.Impl
                         CancellationTokenSource.Token.WaitHandle.WaitOne(_appSettings.ProcessingFrequency * 5);
                         continue;
                     }
-                        
 
+                    _messageCursorCollection.Upsert("current", new MessageCursor
+                    {
+                        Id = "current",
+                        Value = messages.Count > 0 ? messages.Max(x => x.Id) : 0
+                    });
+                    
                     foreach (var message in messages)
                     {
                         var url = message?.Entities?.Urls.Select(u => u.ExpandedURL).FirstOrDefault();
@@ -82,10 +93,12 @@ namespace XsgTwitterBot.Services.Impl
                                 try
                                 {
                                     var tweet = Tweet.GetTweet(tweetId);
-
+                                   
                                     var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
                                     if (isProcessed != null)
                                     {
+                                        _logger.Information("Ignoring tweet from user {@User} - processed already.", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - your tweet has been processed already.", tweet.CreatedBy.Id);
                                         continue;
                                     }
                                     
@@ -94,7 +107,7 @@ namespace XsgTwitterBot.Services.Impl
                                     // tweet can not be a reply
                                     if (!string.IsNullOrWhiteSpace(tweet.InReplyToScreenName))
                                     {
-                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        _logger.Information("Ignoring tweet from user {@User} - replies are not supported.", tweet.CreatedBy);
                                         Message.PublishMessage($"Response to tweet ({tweet.Id}) - replies are not supported.", tweet.CreatedBy.Id);
                                         continue;
                                     }
@@ -104,7 +117,7 @@ namespace XsgTwitterBot.Services.Impl
                                     var hasValidHashTags = tweet.Hashtags.Select(x => x.Text).All(x => requiredHashTags.Contains(x));
                                     if(!hasValidHashTags)
                                     {
-                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        _logger.Information("Ignoring tweet from user {@User} - weet should contain the following hashtags", tweet.CreatedBy);
                                         Message.PublishMessage($"Response to tweet ({tweet.Id}) - Tweet should contain the following hashtags: {_appSettings.BotSettings.TrackKeywords}", tweet.CreatedBy.Id);
                                         continue;
                                     }
@@ -114,7 +127,7 @@ namespace XsgTwitterBot.Services.Impl
                                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                                     if (string.IsNullOrWhiteSpace(targetAddress))
                                     {
-                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        _logger.Information("Ignoring tweet from user {@User} - Tweet should contain valid xsg transparent address", tweet.CreatedBy);
                                         Message.PublishMessage($"Response to tweet ({tweet.Id}) - Tweet should contain valid xsg transparent address", tweet.CreatedBy.Id);
                                         continue;
                                     }
@@ -132,7 +145,7 @@ namespace XsgTwitterBot.Services.Impl
                                     var isTweetTextValid = ValidateTweetText(tweet.Text);
                                     if (!isTweetTextValid)
                                     {
-                                        _logger.Information("Ignoring tweet from user {@User}", tweet.CreatedBy);
+                                        _logger.Information("Ignoring tweet from user {@User} - Your tweet is too short", tweet.CreatedBy);
                                         Message.PublishMessage($"Response to tweet ({tweet.Id}) - Your tweet is too short", tweet.CreatedBy.Id);
                                         continue;
                                     }

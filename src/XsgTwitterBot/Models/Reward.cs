@@ -20,6 +20,12 @@ namespace XsgTwitterBot.Models
         public string Id { get; set; }
     }
     
+    public class MessageCursor
+    {
+        public string Id { get; set; }
+        
+        public long Value { get; set; }
+    }
     
     
 }
