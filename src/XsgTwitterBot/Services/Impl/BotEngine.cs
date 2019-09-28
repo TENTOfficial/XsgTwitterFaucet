@@ -59,8 +59,6 @@ namespace XsgTwitterBot.Services.Impl
                 {
                     long? lastMessageId = _messageCursorCollection.FindById("current")?.Value;
                     
-                    _logger.Information("Last message id: {lastMessageId}", lastMessageId);
-                    
                     var folowerIds = User.GetFollowerIds("GiveawayXsg").ToList();
                     var friendIds = User.GetFriendIds("GiveawayXsg").ToList();
                     folowerIds.Except(friendIds).ForEach(u => User.FollowUser(u));
@@ -79,6 +77,8 @@ namespace XsgTwitterBot.Services.Impl
 
                     if (messages.Count > 0)
                     {
+                        _logger.Information("Last message id: {lastMessageId}", lastMessageId);
+                        
                         _messageCursorCollection.Upsert("current", new MessageCursor
                         {
                             Id = "current",
@@ -90,7 +90,10 @@ namespace XsgTwitterBot.Services.Impl
                     {
                         var url = message?.Entities?.Urls.Select(u => u.ExpandedURL).FirstOrDefault();
 
-                        var strTweetId = url?.Split("/").LastOrDefault();
+                        if(url == null)
+                            continue;
+                        
+                        var strTweetId = new Uri(url).Segments.LastOrDefault();
                         if (strTweetId != null)
                         {
                             if (long.TryParse(strTweetId, out var tweetId))
