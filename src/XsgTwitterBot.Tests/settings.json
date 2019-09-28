@@ -20,7 +20,7 @@
     "MinTweetLenght": 90,
     "AmountForTweetWithTag": 5,
     "AmountForTweetWithFriendMention": 25,
-    "TrackKeywords": ["#snowgem #xsg"],
+    "TrackKeywords": ["snowgem", "xsg"],
     "MessageRewarded": "@{0} Your tweet has been rewarded with {1} XSG.",
     "MessageDailyLimitReached": "@{0} You have reached the daily reward limit. {1}.",
     "MessageReachedLimit": "@{0} You have reached withdrawal limit. Gain additional followers to receive more rewards again!",
