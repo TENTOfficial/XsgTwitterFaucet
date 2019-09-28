@@ -19,7 +19,7 @@ namespace XsgTwitterBot
             builder.RegisterType<ExplorerApi>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<SyncCheckService>().AsImplementedInterfaces().InstancePerDependency();
             
-            var dbPath = Path.Combine("db", "data.db");
+            var dbPath = Path.Combine("db", "data_28092019.db");
             builder.Register(container => new LiteDatabase(dbPath)).SingleInstance();
             
             builder.Register(container => container.Resolve<LiteDatabase>().GetCollection<MessageCursor>("messageCursor")).SingleInstance();

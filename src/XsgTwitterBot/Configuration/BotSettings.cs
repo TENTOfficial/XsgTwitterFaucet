@@ -16,5 +16,6 @@ namespace XsgTwitterBot.Configuration
         public decimal UserRatio { get; set; }
         public int FollowersCountThreshold { get; set; }
         public string MessageFriendMentioned { get; set; }
+        public long LastMessageId { get; set; }
     }
 }

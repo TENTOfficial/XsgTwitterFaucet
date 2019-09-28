@@ -57,7 +57,7 @@ namespace XsgTwitterBot.Services.Impl
             {
                 try
                 {
-                    long? lastMessageId = _messageCursorCollection.FindById("current")?.Value;
+                    long? lastMessageId = _messageCursorCollection.FindById("current")?.Value ?? _appSettings.BotSettings.LastMessageId;
                     
                     var folowerIds = User.GetFollowerIds("GiveawayXsg").ToList();
                     var friendIds = User.GetFriendIds("GiveawayXsg").ToList();
@@ -77,13 +77,15 @@ namespace XsgTwitterBot.Services.Impl
 
                     if (messages.Count > 0)
                     {
-                        _logger.Information("Last message id: {lastMessageId}", lastMessageId);
+                        var maxMessageId = messages.Max(x => x.Id);
                         
                         _messageCursorCollection.Upsert("current", new MessageCursor
                         {
                             Id = "current",
-                            Value = messages.Count > 0 ? messages.Max(x => x.Id) : 0
+                            Value = maxMessageId
                         });
+                        
+                        _logger.Information("Last message id: {lastMessageId}", maxMessageId);
                     }
                     
                     foreach (var message in messages)

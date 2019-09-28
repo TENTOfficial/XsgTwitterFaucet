@@ -15,6 +15,7 @@
   },
 
   "BotSettings": {
+    "LastMessageId" : 1178039261502816260,
     "UserRatio" : 0.81,
     "FollowersCountThreshold" : 100,
     "MinTweetLenght": 90,
