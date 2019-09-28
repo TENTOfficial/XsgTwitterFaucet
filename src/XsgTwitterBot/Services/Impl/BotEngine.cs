@@ -59,6 +59,8 @@ namespace XsgTwitterBot.Services.Impl
                 {
                     long? lastMessageId = _messageCursorCollection.FindById("current")?.Value;
                     
+                    _logger.Information("Last message id: {lastMessageId}", lastMessageId);
+                    
                     var folowerIds = User.GetFollowerIds("GiveawayXsg").ToList();
                     var friendIds = User.GetFriendIds("GiveawayXsg").ToList();
                     folowerIds.Except(friendIds).ForEach(u => User.FollowUser(u));
