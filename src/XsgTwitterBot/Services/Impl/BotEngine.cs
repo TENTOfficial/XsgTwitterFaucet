@@ -134,7 +134,7 @@ namespace XsgTwitterBot.Services.Impl
                                     }
                                     
                                     // tweet must contain valid xsg address
-                                    var text = Regex.Replace(tweet.FullText, @"\r\n?|\n", " ");
+                                    var text = Regex.Replace(tweet.FullText, @"\r\n?|\n|\(|\)", " ");
                                     var targetAddress = _messageParser.GetValidAddressAsync(text).GetAwaiter().GetResult();
                                     if (string.IsNullOrWhiteSpace(targetAddress))
                                     {

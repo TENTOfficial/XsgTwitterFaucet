@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using XsgTwitterBot.Configuration;
 using XsgTwitterBot.Node;
@@ -48,6 +49,18 @@ namespace XsgTwitterBot.Tests
             var result = await _nodeApi.ValidateAddressAsync(address);
 
             Assert.True(result.Result.IsValid == isValid);
+        }
+
+
+        [Fact]
+        public async Task Validate_Address()
+        {
+            var text = @"New twitter promotion campaign from #xsg #snowgem (s1e3V62JUJiXy7mqBgMeX22NXk2V4kGu555) project.
+                You can earn 25 XSG per day by posting a single tweet 
+                @krafman_inc
+                 .";
+            
+            var output = Regex.Replace(text, @"\r\n?|\n|\(|\)", " ");
         }
     }
 
