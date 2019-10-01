@@ -248,10 +248,16 @@ namespace XsgTwitterBot.Services.Impl
             
             if (friend != null)
             {
-                _friendTagMapCollection.Insert(new FriendTagMap
+                var id = $"{tweet.CreatedBy.Id}@{friend.Id}";
+                var isInserted = _friendTagMapCollection.Upsert(id, new FriendTagMap
                 {
-                    Id = $"{tweet.CreatedBy.Id}@{friend.Id}"
+                    Id = id
                 });
+
+                if (!isInserted)
+                {
+                    return RewardType.Tag;
+                }
             }
 
             return rewardType;
