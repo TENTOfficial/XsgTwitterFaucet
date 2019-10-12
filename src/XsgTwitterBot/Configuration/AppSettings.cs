@@ -11,6 +11,6 @@
         public BotSettings BotSettings { get; set; }
 
         public StatSettings StatSettings { get; set; }
-        public int ProcessingFrequency { get; set; }  = 120000;
+        public int ProcessingFrequency { get; set; }  = 180000;
     }
 }

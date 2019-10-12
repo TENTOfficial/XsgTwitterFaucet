@@ -103,6 +103,8 @@ namespace XsgTwitterBot.Services.Impl
                                 try
                                 {
                                     var tweet = Tweet.GetTweet(tweetId);
+                                    if(tweet == null)
+                                        continue;
                                    
                                     var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
                                     if (isProcessed != null)
@@ -207,13 +209,13 @@ namespace XsgTwitterBot.Services.Impl
             }
         }
  
-        private IUser GetFriendMentioned(ITweet tweet)
+        private long? GetFriendMentioned(ITweet tweet)
         {
-            var user = tweet.UserMentions.FirstOrDefault();
-            if (user != null)
+            var friend = tweet.UserMentions.FirstOrDefault();
+            if (friend != null)
             {
-                var friends = User.GetFriends(tweet.CreatedBy);
-                return friends.FirstOrDefault(x => x.Id == user.Id);    
+                var friends = User.GetFriendIds(tweet.CreatedBy, 5000).ToList();
+                return friends.FirstOrDefault(id => id == friend.Id);    
             }
 
             return null;
@@ -243,12 +245,12 @@ namespace XsgTwitterBot.Services.Impl
 
         private RewardType GetRewardType(ITweet tweet)
         {
-            var friend = GetFriendMentioned(tweet);
-            var rewardType = friend != null ? RewardType.FriendMention : RewardType.Tag;
+            var friendId = GetFriendMentioned(tweet);
+            var rewardType = friendId.HasValue ? RewardType.FriendMention : RewardType.Tag;
             
-            if (friend != null)
+            if (friendId.HasValue)
             {
-                var id = $"{tweet.CreatedBy.Id}@{friend.Id}";
+                var id = $"{tweet.CreatedBy.Id}@{friendId}";
                 var isInserted = _friendTagMapCollection.Upsert(id, new FriendTagMap
                 {
                     Id = id
