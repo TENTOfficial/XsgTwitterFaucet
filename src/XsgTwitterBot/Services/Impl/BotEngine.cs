@@ -108,6 +108,14 @@ namespace XsgTwitterBot.Services.Impl
                                     var tweet = Tweet.GetTweet(tweetId);
                                     if(tweet == null)
                                         continue;
+
+                                    if ((DateTime.UtcNow - tweet.CreatedBy.CreatedAt).Days < 3)
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User} - probably a fake account.", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Are you using a fake account?", tweet.CreatedBy.Id);
+                                        continue;
+                                    }
+                                        
                                    
                                     var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
                                     if (isProcessed != null)
