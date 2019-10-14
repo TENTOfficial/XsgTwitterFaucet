@@ -19,6 +19,17 @@ namespace XsgTwitterBot.Services.Impl
             _stats = dailyStats;
             _logger = Log.ForContext<StatsService>();
         }
+
+        public Stat GetPreviousDayStat()
+        {
+            var previousDay = DateTime.UtcNow.AddSeconds(-1);
+
+            var dailyStatId = GetDailyStatId(previousDay);
+            
+            var dailyStat = _stats.FindOne(x => x.Id == dailyStatId);
+
+            return dailyStat;
+        }
         
         public void Publish()
         {

@@ -53,8 +53,21 @@ namespace XsgTwitterBot.Tests
                 _appSettings.TwitterSettings.AccessToken,
                 _appSettings.TwitterSettings.AccessTokenSecret);
 
-           // var user = User.GetUserFromScreenName("@aph5nt");
 
+            var tweet = Tweet.GetTweet(1182831434127462400);
+            var user = tweet.UserMentions.FirstOrDefault();
+            if (user != null)
+            {
+                var friends = User.GetFriends(tweet.CreatedBy,5000);
+                    
+            }
+
+            await Task.CompletedTask;
+            
+            
+            
+           // var user = User.GetUserFromScreenName("@aph5nt");
+/*
            var messages = Message.GetLatestMessages(new GetMessagesParameters()
            {
                Count = 50
@@ -70,7 +83,7 @@ namespace XsgTwitterBot.Tests
 
                messages.AddRange(olderMessages);
            }
-           
+           */
           
             
            /// var response = Message.PublishMessage($"No problem, here ishkhkhj the reply!", 2858559033);

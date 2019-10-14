@@ -9,9 +9,12 @@ namespace XsgTwitterBot.Configuration
         public string MessageReachedLimit { get; set; }
         public string MessageFaucetDrained { get; set; }
         public string MessageDailyLimitReached { get; set; }
+
+        public decimal DailyWithdrawalLimit { get; set; } = 1440;
         public decimal AmountForTweetWithTag { get; set; }
         public decimal AmountForTweetWithFriendMention { get; set; }
-        public string MessageTweetInvalid { get; set; }
+        
+        
         public int MinTweetLenght { get; set; }
         public decimal UserRatio { get; set; }
         public int FollowersCountThreshold { get; set; }

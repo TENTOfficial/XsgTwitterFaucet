@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using XsgTwitterBot.Models;
 
 namespace XsgTwitterBot.Services
 {
@@ -7,5 +8,6 @@ namespace XsgTwitterBot.Services
     {
         void AddStat(DateTime date, decimal amount, bool isNewUser);
         void Publish();
+        Stat GetPreviousDayStat();
     }
 }

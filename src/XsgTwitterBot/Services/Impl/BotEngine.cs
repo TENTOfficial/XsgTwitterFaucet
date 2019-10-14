@@ -23,6 +23,7 @@ namespace XsgTwitterBot.Services.Impl
         private readonly IMessageParser _messageParser;
         private readonly IWithdrawalService _withdrawalService;
         private readonly IStatService _statService;
+        private readonly IAmountHelper _amountHelper;
         private readonly LiteCollection<Reward> _rewardCollection;
         private readonly LiteCollection<FriendTagMap> _friendTagMapCollection;
         private readonly LiteCollection<UserTweetMap> _userTweetMapCollection;
@@ -32,6 +33,7 @@ namespace XsgTwitterBot.Services.Impl
             IMessageParser messageParser, 
             IWithdrawalService withdrawalService,
             IStatService statService,
+            IAmountHelper amountHelper,
             LiteCollection<Reward> rewardCollection, 
             LiteCollection<FriendTagMap> friendTagMapCollection,
             LiteCollection<UserTweetMap> userTweetMapCollection,
@@ -41,6 +43,7 @@ namespace XsgTwitterBot.Services.Impl
             _messageParser = messageParser;
             _withdrawalService = withdrawalService;
             _statService = statService;
+            _amountHelper = amountHelper;
             _rewardCollection = rewardCollection;
             _friendTagMapCollection = friendTagMapCollection;
             _userTweetMapCollection = userTweetMapCollection;
@@ -275,7 +278,7 @@ namespace XsgTwitterBot.Services.Impl
             }
 
             _withdrawalService.ExecuteAsync(rewardType, targetAddress).GetAwaiter().GetResult();
-            _statService.AddStat(DateTime.UtcNow, AmountHelper.GetAmount(_appSettings, rewardType), true);
+            _statService.AddStat(DateTime.UtcNow, _amountHelper.GetAmount(rewardType), true);
 
             var reward = new Reward
             {
@@ -288,7 +291,7 @@ namespace XsgTwitterBot.Services.Impl
             _rewardCollection.Insert(reward);
  
             return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName,
-                AmountHelper.GetAmount(_appSettings, rewardType));
+                _amountHelper.GetAmount(rewardType));
         }
 
         private string HandleExistingUser(ITweet tweet, string targetAddress, Reward reward, RewardType rewardType)
@@ -313,13 +316,13 @@ namespace XsgTwitterBot.Services.Impl
             }
             
             _withdrawalService.ExecuteAsync(rewardType, targetAddress).GetAwaiter().GetResult();
-            _statService.AddStat(DateTime.UtcNow, AmountHelper.GetAmount(_appSettings, rewardType), false);
+            _statService.AddStat(DateTime.UtcNow, _amountHelper.GetAmount(rewardType), false);
 
             reward.LastRewardDate = DateTime.UtcNow;
             reward.Withdrawals++;
             _rewardCollection.Update(reward);
                 
-            return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName, AmountHelper.GetAmount(_appSettings, rewardType));
+            return string.Format(_appSettings.BotSettings.MessageRewarded, tweet.CreatedBy.ScreenName, _amountHelper.GetAmount(rewardType));
         }
 
         private string GenerateMessageDailyLimitReached(string screenName)

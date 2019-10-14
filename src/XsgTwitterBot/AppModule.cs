@@ -14,6 +14,7 @@ namespace XsgTwitterBot
             builder.RegisterType<MessageParser>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<WithdrawalService>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<StatsService>().AsImplementedInterfaces().InstancePerDependency();
+            builder.RegisterType<AmountHelper>().AsImplementedInterfaces().InstancePerDependency();
             builder.RegisterType<NodeApi>().AsImplementedInterfaces().InstancePerDependency();
 
             builder.RegisterType<ExplorerApi>().AsImplementedInterfaces().InstancePerDependency();

@@ -6,20 +6,20 @@ namespace XsgTwitterBot.Services.Impl
 {
     public class WithdrawalService  : IWithdrawalService
     {
-        private readonly AppSettings _appSettings;
         private readonly INodeApi _nodeApi;
+        private readonly IAmountHelper _amountHelper;
 
-        public WithdrawalService(AppSettings appSettings, INodeApi nodeApi)
+        public WithdrawalService(INodeApi nodeApi, IAmountHelper amountHelper)
         {
-            _appSettings = appSettings;
             _nodeApi = nodeApi;
+            _amountHelper = amountHelper;
         }
 
         public async Task<bool> CanExecuteAsync(RewardType rewardType)
         {
+            var amount = _amountHelper.GetAmount(rewardType);
             var response = await _nodeApi.GetInfoAsync();
-            
-            if (response.Result.Balance >  AmountHelper.GetAmount(_appSettings, rewardType))
+            if (response.Result.Balance > amount)
             {
                 return true;
             }
@@ -35,7 +35,7 @@ namespace XsgTwitterBot.Services.Impl
 
         public async Task ExecuteAsync(RewardType rewardType, string targetAddress)
         {
-            await _nodeApi.SendToAddressAsync(targetAddress, AmountHelper.GetAmount(_appSettings, rewardType));
+            await _nodeApi.SendToAddressAsync(targetAddress, _amountHelper.GetAmount(rewardType));
         }
     }
 }
