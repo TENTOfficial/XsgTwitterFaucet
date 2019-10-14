@@ -31,8 +31,8 @@ namespace XsgTwitterBot.Services.Impl
             
             var dailyLimit = _appSettings.BotSettings.DailyWithdrawalLimit;
 
-            var dynamicFriendMentionAmount = (int) dailyLimit / stat.TotalWithdrawals;
-            var dynamicTagAmount = dynamicFriendMentionAmount / 4;
+            var dynamicFriendMentionAmount =  dailyLimit / stat.TotalWithdrawals;
+            var dynamicTagAmount = dynamicFriendMentionAmount / 4m;
 
             if (rewardType == RewardType.Tag)
                 return dynamicTagAmount < _appSettings.BotSettings.AmountForTweetWithTag
