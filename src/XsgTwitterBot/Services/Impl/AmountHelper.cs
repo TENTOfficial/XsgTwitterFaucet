@@ -1,12 +1,8 @@
+using System;
 using XsgTwitterBot.Configuration;
 
 namespace XsgTwitterBot.Services.Impl
 {
-    public interface IAmountHelper
-    {
-        decimal GetAmount(RewardType rewardType);
-    }
-
     public class AmountHelper : IAmountHelper
     {
         private readonly AppSettings _appSettings;
@@ -34,14 +30,21 @@ namespace XsgTwitterBot.Services.Impl
             var dynamicFriendMentionAmount =  dailyLimit / stat.TotalWithdrawals;
             var dynamicTagAmount = dynamicFriendMentionAmount / 4m;
 
+            decimal finalAmount;
             if (rewardType == RewardType.Tag)
-                return dynamicTagAmount < _appSettings.BotSettings.AmountForTweetWithTag
+            {
+                finalAmount = dynamicTagAmount < _appSettings.BotSettings.AmountForTweetWithTag
                     ? dynamicTagAmount
                     : _appSettings.BotSettings.AmountForTweetWithTag;
+            }
+            else
+            {
+                finalAmount = dynamicFriendMentionAmount < _appSettings.BotSettings.AmountForTweetWithFriendMention
+                    ? dynamicFriendMentionAmount
+                    : _appSettings.BotSettings.AmountForTweetWithFriendMention;
+            }
 
-            return dynamicFriendMentionAmount < _appSettings.BotSettings.AmountForTweetWithFriendMention
-                ? dynamicFriendMentionAmount
-                : _appSettings.BotSettings.AmountForTweetWithFriendMention;
+            return Math.Round(finalAmount, MidpointRounding.ToEven);
         }
     }
 }

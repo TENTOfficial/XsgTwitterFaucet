@@ -22,7 +22,7 @@ namespace XsgTwitterBot.Services.Impl
 
         public Stat GetPreviousDayStat()
         {
-            var previousDay = DateTime.UtcNow.AddSeconds(-1);
+            var previousDay = DateTime.UtcNow.Date.AddSeconds(-1);
 
             var dailyStatId = GetDailyStatId(previousDay);
             
