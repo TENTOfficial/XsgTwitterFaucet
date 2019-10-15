@@ -44,7 +44,7 @@ namespace XsgTwitterBot.Services.Impl
                     : _appSettings.BotSettings.AmountForTweetWithFriendMention;
             }
 
-            return Math.Round(finalAmount, MidpointRounding.ToEven);
+            return Math.Round(finalAmount, 2, MidpointRounding.AwayFromZero);
         }
     }
 }
