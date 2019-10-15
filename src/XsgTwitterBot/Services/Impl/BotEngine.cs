@@ -28,6 +28,7 @@ namespace XsgTwitterBot.Services.Impl
         private readonly LiteCollection<FriendTagMap> _friendTagMapCollection;
         private readonly LiteCollection<UserTweetMap> _userTweetMapCollection;
         private readonly LiteCollection<MessageCursor> _messageCursorCollection;
+        private readonly LiteCollection<AddressToUserMap> _addressToUserMapCollection;
 
         public BotEngine(AppSettings appSettings,
             IMessageParser messageParser, 
@@ -37,7 +38,8 @@ namespace XsgTwitterBot.Services.Impl
             LiteCollection<Reward> rewardCollection, 
             LiteCollection<FriendTagMap> friendTagMapCollection,
             LiteCollection<UserTweetMap> userTweetMapCollection,
-            LiteCollection<MessageCursor> messageCursorCollection)
+            LiteCollection<MessageCursor> messageCursorCollection,
+            LiteCollection<AddressToUserMap> addressToUserMapCollection)
         {
             _appSettings = appSettings;
             _messageParser = messageParser;
@@ -48,6 +50,7 @@ namespace XsgTwitterBot.Services.Impl
             _friendTagMapCollection = friendTagMapCollection;
             _userTweetMapCollection = userTweetMapCollection;
             _messageCursorCollection = messageCursorCollection;
+            _addressToUserMapCollection = addressToUserMapCollection;
         }
         
         protected override void RunLoop()
@@ -117,7 +120,7 @@ namespace XsgTwitterBot.Services.Impl
                                         tweet.CreatedBy.BlockUser();
                                         continue;
                                     }
-                                   
+
                                     var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
                                     if (isProcessed != null)
                                     {
@@ -156,6 +159,23 @@ namespace XsgTwitterBot.Services.Impl
                                         Message.PublishMessage($"Response to tweet ({tweet.Id}) - Tweet should contain valid xsg transparent address", tweet.CreatedBy.Id);
                                         continue;
                                     }
+
+                                    var addressToUserMap = _addressToUserMapCollection.FindById(targetAddress);
+                                    if (addressToUserMap == null)
+                                    {
+                                        _addressToUserMapCollection.Insert(new AddressToUserMap
+                                        {
+                                            Id = targetAddress,
+                                            UserId = tweet.CreatedBy.Id
+                                        });
+                                    }
+                                    else if (addressToUserMap.UserId != tweet.CreatedBy.Id)
+                                    {
+                                        _logger.Information("Ignoring tweet from user {@User} - probably a fake account - used same address", tweet.CreatedBy);
+                                        Message.PublishMessage($"Response to tweet ({tweet.Id}) - Are you using a fake account?", tweet.CreatedBy.Id);
+                                        tweet.CreatedBy.BlockUser();
+                                    }
+                                    
 
                                     // user can not be a scammer
                                     //var isUserLegit = ValidateUser(tweet.CreatedBy);
