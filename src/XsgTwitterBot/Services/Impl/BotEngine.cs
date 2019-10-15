@@ -64,7 +64,8 @@ namespace XsgTwitterBot.Services.Impl
                     
                     var folowerIds = User.GetFollowerIds("GiveawayXsg", 5000).ToList();
                     var friendIds = User.GetFriendIds("GiveawayXsg", 5000).ToList();
-                    folowerIds.Except(friendIds).ForEach(u => User.FollowUser(u));
+                    var usersToFollow = folowerIds.Except(friendIds).ToList();
+                    usersToFollow.ForEach(u => User.FollowUser(u));
                    
                     var messages = Message.GetLatestMessages(new GetMessagesParameters
                     {
@@ -109,13 +110,13 @@ namespace XsgTwitterBot.Services.Impl
                                     if(tweet == null)
                                         continue;
 
-                                    if ((DateTime.UtcNow - tweet.CreatedBy.CreatedAt).Days < 3)
+                                    if ((DateTime.UtcNow - tweet.CreatedBy.CreatedAt).Days < 10 || tweet.CreatedBy.DefaultProfileImage ) //|| !tweet.CreatedBy.Verified || tweet.CreatedBy.FollowersCount < 5)
                                     {
                                         _logger.Information("Ignoring tweet from user {@User} - probably a fake account.", tweet.CreatedBy);
                                         Message.PublishMessage($"Response to tweet ({tweet.Id}) - Are you using a fake account?", tweet.CreatedBy.Id);
+                                        tweet.CreatedBy.BlockUser();
                                         continue;
                                     }
-                                        
                                    
                                     var isProcessed = _userTweetMapCollection.FindById($"{tweet.CreatedBy.Id}@{tweet.Id}");
                                     if (isProcessed != null)
